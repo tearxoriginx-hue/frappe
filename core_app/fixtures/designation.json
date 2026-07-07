@@ -1,0 +1,10 @@
+[
+ {"doctype": "Designation", "designation_name": "Manager", "name": "Manager"},
+ {"doctype": "Designation", "designation_name": "Staff", "name": "Staff"},
+ {"doctype": "Designation", "designation_name": "Executive", "name": "Executive"},
+ {"doctype": "Designation", "designation_name": "Senior Manager", "name": "Senior Manager"},
+ {"doctype": "Designation", "designation_name": "Team Lead", "name": "Team Lead"},
+ {"doctype": "Designation", "designation_name": "Associate", "name": "Associate"},
+ {"doctype": "Designation", "designation_name": "Intern", "name": "Intern"},
+ {"doctype": "Designation", "designation_name": "Director", "name": "Director"}
+]

@@ -4,7 +4,7 @@ authors = [
     { name = "Krystaa", email = "hello@krystaa.com"}
 ]
 description = "Core DocTypes for RMA & Dispatch"
-requires-python = ">=3.14"
+requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [

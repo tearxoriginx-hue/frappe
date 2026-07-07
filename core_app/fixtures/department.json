@@ -1,0 +1,10 @@
+[
+ {"doctype": "Department", "department_name": "IT", "name": "IT"},
+ {"doctype": "Department", "department_name": "HR", "name": "HR"},
+ {"doctype": "Department", "department_name": "Sales", "name": "Sales"},
+ {"doctype": "Department", "department_name": "Operations", "name": "Operations"},
+ {"doctype": "Department", "department_name": "Finance", "name": "Finance"},
+ {"doctype": "Department", "department_name": "Customer Support", "name": "Customer Support"},
+ {"doctype": "Department", "department_name": "Warehouse", "name": "Warehouse"},
+ {"doctype": "Department", "department_name": "Management", "name": "Management"}
+]

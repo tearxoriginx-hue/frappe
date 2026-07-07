@@ -4,6 +4,7 @@ app_publisher = "Krystaa"
 app_description = "Core DocTypes for RMA & Dispatch"
 app_email = "hello@krystaa.com"
 app_license = "mit"
+hide_in_menu = True
 
 # Apps
 # ------------------
@@ -182,26 +183,18 @@ app_license = "mit"
 
 # Overriding Methods
 # ------------------------------
-#
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "core_app.event.get_events"
-# }
-#
-# each overriding function accepts a `data` argument;
-# generated from the base implementation of the doctype dashboard,
-# along with any modifications made in other Frappe apps
-# override_doctype_dashboards = {
-# 	"Task": "core_app.task.get_dashboard_data"
-# }
 
-# exempt linked doctypes from being automatically cancelled
-#
-# auto_cancel_exempted_doctypes = ["Auto Repeat"]
+# Scheduled Tasks
+# -----------------
 
-# Ignore links to specified DocTypes when deleting documents
-# -----------------------------------------------------------
-
-# ignore_links_on_delete = ["Communication", "ToDo"]
+scheduler_events = {
+	"all": [
+		"core_app.utils.biometric_sync.sync_all_devices",
+	],
+	"hourly": [
+		"core_app.utils.biometric_sync.sync_all_devices",
+	],
+}
 
 # Request Events
 # ----------------
