@@ -1,14 +1,14 @@
 app_name = "dispatched"
-app_title = "Dispatch Module "
+app_title = "Dispatch Module"
 app_publisher = "Varun"
-app_description = "A module for quick dispatch if items and activating warrenty"
+app_description = "A module for quick dispatch of items and activating warranty"
 app_email = "cloud@krystaa.com"
 app_license = "mit"
 
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["core_app"]
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
@@ -43,7 +43,9 @@ app_license = "mit"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+	"Dispatch Entry": "dispatch_module/doctype/dispatch_entry/dispatch_entry.js"
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
