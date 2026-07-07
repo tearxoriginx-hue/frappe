@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Krystaa</title>
+    <link rel="manifest" href="/assets/pwa_app/manifest.json">
+    <meta name="theme-color" content="#1a73e8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.prod.js"></script>
+    <style>
+        /* === Reset & Base === */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f0f2f5; color: #1a1a2e; -webkit-font-smoothing: antialiased;
+            overscroll-behavior: none; touch-action: manipulation;
+        }
+        #app { min-height: 100vh; display: flex; flex-direction: column; }
+        a { text-decoration: none; color: inherit; }
+        input, select, textarea, button { font-family: inherit; }
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+        /* === Loading === */
+        .app-loading {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; gap: 16px; background: #1a73e8; color: white;
+        }
+        .app-loading .spinner {
+            width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .app-loading p { font-size: 1rem; opacity: 0.9; }
+
+        /* === App Bar === */
+        .app-bar {
+            background: #1a73e8; color: white; padding: 10px 16px;
+            display: flex; align-items: center; gap: 12px;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            min-height: 52px;
+        }
+        .app-bar .menu-btn {
+            background: none; border: none; color: white; font-size: 1.4rem;
+            cursor: pointer; padding: 4px 4px; width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 8px; transition: background 0.2s;
+        }
+        .app-bar .menu-btn:active { background: rgba(255,255,255,0.15); }
+        .app-bar h1 { font-size: 1.05rem; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .app-bar .badge-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: #4ade80;
+            display: inline-block; margin-left: 6px;
+        }
+        .app-bar .action-btn {
+            background: rgba(255,255,255,0.15); border: none; color: white;
+            width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+            transition: background 0.2s;
+        }
+        .app-bar .action-btn:active { background: rgba(255,255,255,0.25); }
+
+        /* === Offline Banner === */
+        .offline-banner {
+            background: #f59e0b; color: white; text-align: center;
+            padding: 6px 12px; font-size: 0.8rem; font-weight: 500;
+        }
+
+        /* === Side Drawer === */
+        .drawer-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+            z-index: 200; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .drawer-overlay.open { opacity: 1; pointer-events: auto; }
+        .drawer {
+            position: fixed; top: 0; left: 0; bottom: 0; width: 280px;
+            background: white; z-index: 201; transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 2px 0 12px rgba(0,0,0,0.15);
+            display: flex; flex-direction: column;
+        }
+        .drawer.open { transform: translateX(0); }
+        .drawer-header {
+            background: #1a73e8; color: white; padding: 24px 20px 16px;
+        }
+        .drawer-header h2 { font-size: 1.1rem; font-weight: 600; }
+        .drawer-header p { font-size: 0.8rem; opacity: 0.8; margin-top: 2px; }
+        .drawer-nav { flex: 1; overflow-y: auto; padding: 8px 0; }
+        .drawer-nav a {
+            display: flex; align-items: center; gap: 14px; padding: 12px 20px;
+            color: #374151; font-size: 0.9rem; font-weight: 500;
+            transition: background 0.15s; border-left: 3px solid transparent;
+        }
+        .drawer-nav a:active { background: #f3f4f6; }
+        .drawer-nav a.active { background: #eef2ff; border-left-color: #1a73e8; color: #1a73e8; }
+        .drawer-nav a .icon { font-size: 1.2rem; width: 24px; text-align: center; }
+        .drawer-footer {
+            padding: 12px 20px; border-top: 1px solid #e5e7eb; font-size: 0.8rem; color: #9ca3af;
+        }
+        .drawer-footer button {
+            background: none; border: none; color: #ef4444; cursor: pointer;
+            font-size: 0.85rem; padding: 6px 0; display: flex; align-items: center; gap: 8px;
+        }
+
+        /* === Navigation Tabs === */
+        .nav-tabs {
+            background: white; display: flex; overflow-x: auto;
+            gap: 2px; padding: 0 4px; border-bottom: 1px solid #e5e7eb;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none;
+        }
+        .nav-tabs::-webkit-scrollbar { display: none; }
+        .nav-tabs a {
+            padding: 10px 10px; text-decoration: none; color: #6b7280;
+            font-size: 0.78rem; font-weight: 500; white-space: nowrap;
+            border-bottom: 2px solid transparent; transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .nav-tabs a.active { color: #1a73e8; border-bottom-color: #1a73e8; }
+        .nav-tabs a:active { background: #f9fafb; }
+
+        /* === Content === */
+        .content { flex: 1; padding: 12px; max-width: 800px; margin: 0 auto; width: 100%; }
+
+        /* === Cards === */
+        .card {
+            background: white; border-radius: 12px; padding: 16px;
+            margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            transition: box-shadow 0.2s;
+        }
+        .card:active { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .card-header h3 { font-size: 0.9rem; font-weight: 600; color: #374151; }
+        .card-header .badge { font-size: 0.7rem; }
+        .card-footer { margin-top: 10px; padding-top: 10px; border-top: 1px solid #f3f4f6; }
+
+        /* === Stats Grid === */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        @media (min-width: 500px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+        .stats-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+        @media (min-width: 500px) { .stats-grid.cols-3 { grid-template-columns: repeat(3, 1fr); } }
+        .stat-card {
+            background: white; border-radius: 12px; padding: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); text-align: center;
+            border-left: 3px solid #1a73e8;
+        }
+        .stat-card .value { font-size: 1.6rem; font-weight: 700; color: #1a73e8; }
+        .stat-card .label { font-size: 0.75rem; color: #6b7280; margin-top: 2px; }
+
+        /* === Buttons === */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer;
+            font-size: 0.85rem; font-weight: 600; transition: all 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: #1a73e8; color: white; }
+        .btn-primary:active { background: #1557b0; }
+        .btn-success { background: #16a34a; color: white; }
+        .btn-success:active { background: #15803d; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-outline { background: white; border: 1.5px solid #1a73e8; color: #1a73e8; }
+        .btn-outline:active { background: #eef2ff; }
+        .btn-ghost { background: transparent; color: #6b7280; }
+        .btn-sm { padding: 6px 12px; font-size: 0.78rem; border-radius: 8px; }
+        .btn-lg { padding: 14px 24px; font-size: 1rem; border-radius: 12px; }
+        .btn-block { width: 100%; }
+        .btn:disabled { opacity: 0.5; pointer-events: none; }
+
+        /* === Badges === */
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 20px;
+            font-size: 0.7rem; font-weight: 600;
+        }
+        .badge-gray { background: #f3f4f6; color: #6b7280; }
+        .badge-blue { background: #eef2ff; color: #4338ca; }
+        .badge-green { background: #ecfdf5; color: #16a34a; }
+        .badge-yellow { background: #fffbeb; color: #d97706; }
+        .badge-red { background: #fef2f2; color: #dc2626; }
+        .badge-purple { background: #f5f3ff; color: #7c3aed; }
+        .badge-orange { background: #fff7ed; color: #ea580c; }
+
+        /* === Forms === */
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px; }
+        .form-control {
+            width: 100%; padding: 10px 12px; border: 1.5px solid #d1d5db;
+            border-radius: 10px; font-size: 0.9rem; color: #1a1a2e;
+            background: white; transition: border-color 0.2s;
+            -webkit-appearance: none;
+        }
+        .form-control:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 3px rgba(26,115,232,0.1); }
+        .form-control::placeholder { color: #9ca3af; }
+        select.form-control { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+        textarea.form-control { resize: vertical; min-height: 80px; }
+
+        /* === Lists === */
+        .list-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 0; border-bottom: 1px solid #f3f4f6;
+        }
+        .list-item:last-child { border-bottom: none; }
+        .list-item .info { flex: 1; min-width: 0; }
+        .list-item .info .title { font-size: 0.85rem; font-weight: 600; color: #1a1a2e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .list-item .info .sub { font-size: 0.75rem; color: #6b7280; margin-top: 1px; }
+
+        /* === Empty State === */
+        .empty-state {
+            text-align: center; padding: 40px 20px; color: #9ca3af;
+        }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+        .empty-state p { font-size: 0.9rem; }
+
+        /* === Skeleton === */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%; animation: shimmer 1.5s infinite;
+            border-radius: 8px; height: 16px; margin-bottom: 8px;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* === Modal / Dialog === */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+            z-index: 300; display: flex; align-items: flex-end;
+            justify-content: center; opacity: 0; pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        .modal {
+            background: white; border-radius: 20px 20px 0 0; width: 100%;
+            max-width: 500px; max-height: 85vh; overflow-y: auto;
+            padding: 20px; transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .modal-overlay.open .modal { transform: translateY(0); }
+        .modal-handle {
+            width: 36px; height: 4px; background: #d1d5db; border-radius: 2px;
+            margin: 0 auto 16px;
+        }
+        .modal h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+
+        /* === Toast === */
+        .toast-container {
+            position: fixed; top: 60px; right: 12px; z-index: 500;
+            display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+        }
+        .toast {
+            background: #1f2937; color: white; padding: 10px 16px;
+            border-radius: 10px; font-size: 0.8rem; font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease; pointer-events: auto;
+            max-width: 320px;
+        }
+        .toast.success { background: #16a34a; }
+        .toast.error { background: #dc2626; }
+        .toast.warning { background: #d97706; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* === Status colors === */
+        .text-green { color: #16a34a; }
+        .text-yellow { color: #d97706; }
+        .text-red { color: #dc2626; }
+        .text-blue { color: #1a73e8; }
+        .text-gray { color: #6b7280; }
+
+        /* === Flex utils === */
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 8px; }
+        .gap-3 { gap: 12px; }
+        .gap-4 { gap: 16px; }
+        .mt-2 { margin-top: 8px; }
+        .mt-3 { margin-top: 12px; }
+        .mb-2 { margin-bottom: 8px; }
+        .mb-3 { margin-bottom: 12px; }
+        .text-sm { font-size: 0.8rem; }
+        .text-xs { font-size: 0.7rem; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 600; }
+        .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .w-full { width: 100%; }
+        .p-3 { padding: 12px; }
+
+        /* === Check-in specific === */
+        .checkin-status {
+            text-align: center; padding: 24px;
+        }
+        .checkin-status .time { font-size: 2.5rem; font-weight: 700; color: #1a1a2e; }
+        .checkin-status .date { font-size: 0.85rem; color: #6b7280; margin-top: 2px; }
+
+        /* === Quick actions === */
+        .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .quick-action {
+            background: white; border-radius: 12px; padding: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); text-align: center;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .quick-action:active { transform: scale(0.96); background: #f9fafb; }
+        .quick-action .icon { font-size: 1.5rem; margin-bottom: 4px; }
+        .quick-action .label { font-size: 0.78rem; color: #374151; font-weight: 500; }
+
+        /* === Pull to refresh === */
+        .ptr-indicator {
+            text-align: center; padding: 8px; font-size: 0.75rem; color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="app-loading">
+            <div class="spinner"></div>
+            <p>Krystaa</p>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // Session data from server (replaced at render time)
+        // ============================================================
+        const SESSION = {
+            user: "{{ user }}",
+            userEmail: "{{ user_email }}",
+            roles: {{ roles | tojson }},
+            csrf: "{{ csrf_token }}",
+            fullName: "{{ full_name or user }}"
+        };
+
+        // ============================================================
+        // API Helper
+        // ============================================================
+        {% raw %}
+        // Reactive online status exposed globally for child components
+        const onlineState = Vue.ref(navigator.onLine);
+        window.addEventListener('online', () => { onlineState.value = true; });
+        window.addEventListener('offline', () => { onlineState.value = false; });
+
+        const api = {
+            get: async (url) => {
+                const r = await fetch(url, { credentials: "include" });
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                const data = await r.json();
+                if (data && data.exc) throw new Error(typeof data.exc === 'string' ? data.exc : 'API error');
+                return data;
+            },
+            post: async (url, data) => {
+                const r = await fetch(url, {
+                    method: "POST", credentials: "include",
+                    headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": SESSION.csrf },
+                    body: JSON.stringify(data)
+                });
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                const json = await r.json();
+                if (json && json.exc) throw new Error(typeof json.exc === 'string' ? json.exc : 'API error');
+                return json;
+            },
+            resource: (dt) => ({
+                list: (filters, fields, limit=20) => {
+                    let q = `/api/resource/${dt}?limit_page_length=${limit}&limit_start=0`;
+                    if (filters) q += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+                    if (fields) q += `&fields=${encodeURIComponent(JSON.stringify(fields))}`;
+                    return api.get(q);
+                },
+                get: (name) => api.get(`/api/resource/${dt}/${name}`),
+                create: (data) => api.post(`/api/resource/${dt}`, data),
+                update: (name, data) => {
+                    return fetch(`/api/resource/${dt}/${name}`, {
+                        method: "PUT", credentials: "include",
+                        headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": SESSION.csrf },
+                        body: JSON.stringify(data)
+                    }).then(r => r.json());
+                },
+            }),
+            method: (method, args) => api.post(`/api/method/${method}`, args || {}),
+        };
+
+        // ============================================================
+        // Role & Permission helpers
+        // ============================================================
+        const hasRole = (...roles) => roles.some(r => SESSION.roles.includes(r));
+        const isRMA = () => hasRole("RMA Staff", "RMA Manager", "System Manager");
+        const isDispatch = () => hasRole("Dispatch User", "Dispatch Operator", "Dispatch Manager", "System Manager");
+        const isHR = () => hasRole("HR User", "HR Manager", "System Manager");
+        const isManager = () => hasRole("RMA Manager", "Dispatch Manager", "HR Manager", "System Manager");
+
+        // ============================================================
+        // Toast notification system
+        // ============================================================
+        const toasts = Vue.reactive([]);
+        function toast(msg, type="info", duration=3000) {
+            const id = Date.now() + Math.random();
+            toasts.push({ id, msg, type });
+            setTimeout(() => {
+                const idx = toasts.findIndex(t => t.id === id);
+                if (idx > -1) toasts.splice(idx, 1);
+            }, duration);
+        }
+
+        // ============================================================
+        // Vue App
+        // ============================================================
+        const { createApp, ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineComponent, h } = Vue;
+        const { createRouter, createWebHistory } = VueRouter;
+
+        // ============================================================
+        // Components
+        // ============================================================
+
+        // --- Dashboard View ---
+        const Dashboard = {
+            template: `
+                <div>
+                    <div class="stats-grid">
+                        <div class="stat-card" style="border-left-color:#1a73e8">
+                            <div class="value">{{ loading ? '...' : stats.totalRmas }}</div>
+                            <div class="label">Total RMAs</div>
+                        </div>
+                        <div class="stat-card" style="border-left-color:#16a34a">
+                            <div class="value">{{ loading ? '...' : stats.openRmas }}</div>
+                            <div class="label">Open RMAs</div>
+                        </div>
+                        <div class="stat-card" style="border-left-color:#f59e0b">
+                            <div class="value">{{ loading ? '...' : stats.pendingDispatch }}</div>
+                            <div class="label">Pending Dispatch</div>
+                        </div>
+                        <div class="stat-card" style="border-left-color:#8b5cf6">
+                            <div class="value">{{ loading ? '...' : stats.myLeaves }}</div>
+                            <div class="label">My Leaves</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Quick Actions</h3>
+                        </div>
+                        <div class="quick-actions">
+                            <div class="quick-action" @click="$router.push('/attendance')">
+                                <div class="icon">&#128197;</div>
+                                <div class="label">Check In/Out</div>
+                            </div>
+                            <div class="quick-action" @click="$router.push('/leaves')">
+                                <div class="icon">&#128203;</div>
+                                <div class="label">Apply Leave</div>
+                            </div>
+                            <div v-if="showDispatch" class="quick-action" @click="$router.push('/dispatch')">
+                                <div class="icon">&#128666;</div>
+                                <div class="label">Dispatch</div>
+                            </div>
+                            <div class="quick-action" @click="$router.push('/rma')">
+                                <div class="icon">&#128295;</div>
+                                <div class="label">RMA Request</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="recentRmas.length" class="card">
+                        <div class="card-header">
+                            <h3>Recent RMA Requests</h3>
+                            <router-link to="/rma" class="text-sm text-blue">View all</router-link>
+                        </div>
+                        <div v-for="rma in recentRmas" :key="rma.name" class="list-item">
+                            <div class="info">
+                                <div class="title">{{ rma.name }}</div>
+                                <div class="sub">{{ rma.item_name || rma.item_code }} &middot; {{ rma.status }}</div>
+                            </div>
+                            <span :class="'badge ' + statusBadge(rma.status)">{{ rma.status }}</span>
+                        </div>
+                    </div>
+
+                    <div v-if="recentDispatches.length && showDispatch" class="card">
+                        <div class="card-header">
+                            <h3>Recent Dispatches</h3>
+                            <router-link to="/dispatch" class="text-sm text-blue">View all</router-link>
+                        </div>
+                        <div v-for="d in recentDispatches" :key="d.name" class="list-item">
+                            <div class="info">
+                                <div class="title">{{ d.name }}</div>
+                                <div class="sub">{{ d.customer_name || d.customer }} &middot; {{ d.total_qty || 0 }} units</div>
+                            </div>
+                            <span :class="'badge ' + dispatchBadge(d.processing_status)">{{ d.processing_status }}</span>
+                        </div>
+                    </div>
+
+                    <div v-if="error" class="card" style="text-align:center;color:#dc2626;">
+                        <p>{{ error }}</p>
+                        <button class="btn btn-outline btn-sm mt-2" @click="loadStats">Retry</button>
+                    </div>
+                </div>
+            `,
+            setup() {
+                const loading = ref(true);
+                const error = ref(null);
+                const stats = reactive({ totalRmas: 0, openRmas: 0, pendingDispatch: 0, myLeaves: 0 });
+                const recentRmas = ref([]);
+                const recentDispatches = ref([]);
+                const showDispatch = computed(() => isDispatch());
+
+                function statusBadge(status) {
+                    const map = { "Draft": "badge-gray", "In Repair": "badge-orange", "Completed": "badge-green", "Pending Approval": "badge-yellow", "Approved for Replacement": "badge-blue", "Replaced": "badge-purple", "Cancelled": "badge-red" };
+                    return map[status] || "badge-gray";
+                }
+                function dispatchBadge(s) {
+                    const map = { "Pending": "badge-yellow", "In Queue": "badge-blue", "Processed": "badge-green", "Failed": "badge-red" };
+                    return map[s] || "badge-gray";
+                }
+
+                async function loadStats() {
+                    loading.value = true; error.value = null;
+                    try {
+                        const [rmaRes, dispRes, leaveRes] = await Promise.allSettled([
+                            api.resource("RMA Request").list([["docstatus", "!=", 2]], ["name","status","item_name","item_code"], 5),
+                            showDispatch.value ? api.resource("Dispatch Entry").list([["docstatus", "!=", 2]], ["name","customer","customer_name","total_qty","processing_status"], 5) : Promise.resolve({ data: [] }),
+                            isHR() ? api.resource("Leave Application").list([["docstatus", "=", 1], ["leave_type", "!=", ""]], ["name"], 1) : Promise.resolve({ data: [] }),
+                        ]);
+
+                        if (rmaRes.status === "fulfilled") {
+                            const data = rmaRes.value.data || [];
+                            recentRmas.value = data.slice(0, 5);
+                            stats.totalRmas = data.length;
+                            stats.openRmas = data.filter(d => !["Completed","Replaced","Cancelled"].includes(d.status)).length;
+                        }
+                        if (dispRes.status === "fulfilled") {
+                            const data = dispRes.value.data || [];
+                            recentDispatches.value = data.slice(0, 5);
+                            stats.pendingDispatch = data.filter(d => d.processing_status === "Pending" || d.processing_status === "In Queue").length;
+                        }
+                        if (leaveRes.status === "fulfilled") {
+                            stats.myLeaves = (leaveRes.value.data || []).length;
+                        }
+                    } catch (e) {
+                        error.value = "Could not load dashboard data. " + e.message;
+                    } finally {
+                        loading.value = false;
+                    }
+                }
+
+                onMounted(loadStats);
+                return { loading, error, stats, recentRmas, recentDispatches, showDispatch, statusBadge, dispatchBadge };
+            }
+        };
+
+        // --- Attendance View ---
+        const Attendance = {
+            template: `
+                <div>
+                    <div class="card checkin-status">
+                        <div class="date">{{ todayStr }}</div>
+                        <div class="time">{{ currentTime }}</div>
+                        <div class="mt-3">
+                            <span :class="'badge ' + (checkedIn ? 'badge-green' : 'badge-gray')" style="font-size:0.85rem;padding:4px 16px;">
+                                {{ checkedIn ? '&#10003; Checked In' : 'Not Checked In' }}
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <button v-if="!checkedIn" class="btn btn-success btn-lg btn-block" @click="checkIn" :disabled="loading">
+                                {{ loading ? 'Processing...' : '&#128204; Check In' }}
+                            </button>
+                            <button v-else class="btn btn-outline btn-lg btn-block" @click="checkOut" :disabled="loading">
+                                {{ loading ? 'Processing...' : '&#128683; Check Out' }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><h3>Today's Attendance</h3></div>
+                        <div v-if="todayLogs.length">
+                            <div v-for="log in todayLogs" :key="log.name" class="list-item">
+                                <div class="info">
+                                    <div class="title">{{ log.log_type === 'IN' ? '&#127919; Check In' : '&#128683; Check Out' }}</div>
+                                    <div class="sub">{{ log.time }}</div>
+                                </div>
+                                <span :class="'badge ' + (log.log_type === 'IN' ? 'badge-green' : 'badge-orange')">{{ log.log_type }}</span>
+                            </div>
+                        </div>
+                        <div v-else class="empty-state"><p>No check-ins today</p></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><h3>This Week</h3></div>
+                        <div v-if="weeklyLogs.length">
+                            <div v-for="day in weeklyLogs" :key="day.date" class="list-item">
+                                <div class="info">
+                                    <div class="title">{{ day.date }}</div>
+                                    <div class="sub">{{ day.logs }} entries</div>
+                                </div>
+                                <span :class="'badge ' + (day.present ? 'badge-green' : 'badge-red')">{{ day.present ? 'Present' : 'Absent' }}</span>
+                            </div>
+                        </div>
+                        <div v-else class="empty-state"><p>No attendance data</p></div>
+                    </div>
+                </div>
+            `,
+            setup() {
+                const loading = ref(false);
+                const checkedIn = ref(false);
+                const todayLogs = ref([]);
+                const weeklyLogs = ref([]);
+                const currentTime = ref("");
+                const todayStr = ref("");
+                let timer = null;
+
+                function updateClock() {
+                    const now = new Date();
+                    currentTime.value = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    todayStr.value = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                }
+
+                async function loadAttendance() {
+                    try {
+                        const today = new Date().toISOString().split('T')[0];
+                        // Get employee record for current user
+                        const empRes = await api.resource("Employee").list([["user_id", "=", SESSION.user]], ["name"], 1);
+                        if (!empRes.data || !empRes.data.length) return;
+                        const employee = empRes.data[0].name;
+
+                        // Get today's checkins
+                        const checkinRes = await api.resource("Employee Checkin").list(
+                            [["employee", "=", employee], ["time", ">=", today + " 00:00:00"]],
+                            ["name", "log_type", "time"], 20
+                        );
+                        todayLogs.value = (checkinRes.data || []).map(d => ({
+                            ...d,
+                            time: new Date(d.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        }));
+                        checkedIn.value = todayLogs.value.some(l => l.log_type === 'IN') &&
+                            !todayLogs.value.some(l => l.log_type === 'OUT' && new Date(l.time) > new Date(todayLogs.value.find(l2 => l2.log_type === 'IN')?.time || 0));
+                    } catch (e) {
+                        console.error("Attendance load error:", e);
+                    }
+                }
+
+                async function checkIn() {
+                    loading.value = true;
+                    try {
+                        await api.method("hrms.hr.doctype.employee_checkin.employee_checkin.add_log_based_on_employee_field", {
+                            employee_field_value: SESSION.user,
+                            log_type: "IN",
+                            device_id: "PWA",
+                        });
+                        toast("Checked in successfully!", "success");
+                        await loadAttendance();
+                    } catch (e) {
+                        toast("Check-in failed: " + (e.message || "Unknown error"), "error");
+                    } finally { loading.value = false; }
+                }
+
+                async function checkOut() {
+                    loading.value = true;
+                    try {
+                        await api.method("hrms.hr.doctype.employee_checkin.employee_checkin.add_log_based_on_employee_field", {
+                            employee_field_value: SESSION.user,
+                            log_type: "OUT",
+                            device_id: "PWA",
+                        });
+                        toast("Checked out successfully!", "success");
+                        await loadAttendance();
+                    } catch (e) {
+                        toast("Check-out failed: " + (e.message || "Unknown error"), "error");
+                    } finally { loading.value = false; }
+                }
+
+                onMounted(() => {
+                    updateClock();
+                    timer = setInterval(updateClock, 1000);
+                    loadAttendance();
+                });
+                onUnmounted(() => { if (timer) clearInterval(timer); });
+
+                return { loading, checkedIn, todayLogs, weeklyLogs, currentTime, todayStr, checkIn, checkOut };
+            }
+        };
+
+        // --- Leaves View ---
+        const Leaves = {
+            template: `
+                <div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Leave Balance</h3>
+                            <button class="btn btn-primary btn-sm" @click="showForm = !showForm">{{ showForm ? 'Cancel' : 'Apply Leave' }}</button>
+                        </div>
+                        <div v-if="loading">Loading...</div>
+                        <div v-else-if="balances.length">
+                            <div v-for="b in balances" :key="b.leave_type" class="list-item">
+                                <div class="info">
+                                    <div class="title">{{ b.leave_type }}</div>
+                                    <div class="sub">Remaining: {{ b.remaining || 0 }}</div>
+                                </div>
+                                <span class="badge badge-blue">{{ b.total_allocated || 0 }} allocated</span>
+                            </div>
+                        </div>
+                        <div v-else class="empty-state"><p>No leave allocations found</p></div>
+                    </div>
+
+                    <div v-if="showForm" class="card">
+                        <h3 class="mb-2">Apply for Leave</h3>
+                        <div class="form-group">
+                            <label>Leave Type</label>
+                            <select v-model="form.leave_type" class="form-control">
+                                <option value="">Select type</option>
+                                <option v-for="lt in leaveTypes" :key="lt" :value="lt">{{ lt }}</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>From Date</label>
+                            <input type="date" v-model="form.from_date" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>To Date</label>
+                            <input type="date" v-model="form.to_date" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Reason</label>
+                            <textarea v-model="form.reason" class="form-control" placeholder="Describe your reason"></textarea>
+                        </div>
+                        <button class="btn btn-primary btn-block" @click="submitLeave" :disabled="submitting">
+                            {{ submitting ? 'Submitting...' : 'Submit Leave Application' }}
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><h3>My Leave Applications</h3></div>
+                        <div v-if="myLeaves.length">
+                            <div v-for="l in myLeaves" :key="l.name" class="list-item">
+                                <div class="info">
+                                    <div class="title">{{ l.leave_type }} &middot; {{ l.from_date }} to {{ l.to_date }}</div>
+                                    <div class="sub">{{ l.total_leave_days }} day(s)</div>
+                                </div>
+                                <span :class="'badge ' + statusBadge(l.status)">{{ l.status }}</span>
+                            </div>
+                        </div>
+                        <div v-else class="empty-state"><p>No leave applications</p></div>
+                    </div>
+                </div>
+            `,
+            setup() {
+                const loading = ref(true);
+                const submitting = ref(false);
+                const showForm = ref(false);
+                const balances = ref([]);
+                const myLeaves = ref([]);
+                const leaveTypes = ref(["Casual Leave", "Sick Leave", "Privilege Leave", "Leave Without Pay", "Compensatory Off"]);
+                const form = reactive({ leave_type: "", from_date: "", to_date: "", reason: "" });
+
+                function statusBadge(s) {
+                    const map = { "Draft": "badge-gray", "Applied": "badge-blue", "Approved": "badge-green", "Rejected": "badge-red" };
+                    return map[s] || "badge-gray";
+                }
+
+                async function loadLeaves() {
+                    loading.value = true;
+                    try {
+                        const empRes = await api.resource("Employee").list([["user_id", "=", SESSION.user]], ["name"], 1);
+                        if (!empRes.data || !empRes.data.length) { loading.value = false; return; }
+                        const employee = empRes.data[0].name;
+
+                        const [balRes, leaveRes] = await Promise.allSettled([
+                            api.resource("Leave Allocation").list([["employee", "=", employee], ["docstatus", "=", 1]], ["leave_type", "total_leaves_allocated", "total_leave_days"], 20),
+                            api.resource("Leave Application").list([["employee", "=", employee], ["docstatus", "!=", 2]], ["name", "leave_type", "from_date", "to_date", "total_leave_days", "status"], 20),
+                        ]);
+
+                        if (balRes.status === "fulfilled") {
+                            balances.value = (balRes.value.data || []).map(d => ({
+                                leave_type: d.leave_type,
+                                total_allocated: d.total_leaves_allocated || d.total_leave_days,
+                                remaining: (d.total_leaves_allocated || 0) - (d.total_leave_days || 0),
+                            }));
+                        }
+                        if (leaveRes.status === "fulfilled") {
+                            myLeaves.value = (leaveRes.value.data || []).reverse();
+                        }
+                    } catch (e) {
+                        toast("Failed to load leaves: " + e.message, "error");
+                    } finally { loading.value = false; }
+                }
+
+                async function submitLeave() {
+                    if (!form.leave_type || !form.from_date || !form.to_date) {
+                        toast("Please fill all required fields", "warning"); return;
+                    }
+                    submitting.value = true;
+                    try {
+                        const empRes = await api.resource("Employee").list([["user_id", "=", SESSION.user]], ["name"], 1);
+                        if (!empRes.data || !empRes.data.length) { toast("No employee record found", "error"); return; }
+                        await api.resource("Leave Application").create({
+                            employee: empRes.data[0].name,
+                            leave_type: form.leave_type,
+                            from_date: form.from_date,
+                            to_date: form.to_date,
+                            description: form.reason,
+                        });
+                        toast("Leave application submitted!", "success");
+                        showForm.value = false;
+                        form.leave_type = ""; form.from_date = ""; form.to_date = ""; form.reason = "";
+                        await loadLeaves();
+                    } catch (e) {
+                        toast("Failed: " + (e.message || JSON.stringify(e)), "error");
+                    } finally { submitting.value = false; }
+                }
+
+                onMounted(loadLeaves);
+                return { loading, submitting, showForm, balances, myLeaves, leaveTypes, form, statusBadge, submitLeave };
+            }
+        };
+
+        // --- Dispatch View ---
+        const Dispatch = {
+            template: `
+                <div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Dispatch Entries</h3>
+                            <span class="badge badge-blue">{{ entries.length }} total</span>
+                        </div>
+                        <div v-if="loading">
+                            <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+                        </div>
+                        <div v-else-if="entries.length">
+                            <div v-for="e in entries" :key="e.name" class="list-item">
+                                <div class="info">
+                                    <div class="title">{{ e.name }}</div>
+                                    <div class="sub">{{ e.customer_name || e.customer }} &middot; {{ e.total_qty || 0 }} units</div>
+                                </div>
+                                <span :class="'badge ' + badge(e.processing_status)">{{ e.processing_status }}</span>
+                            </div>
+                        </div>
+                        <div v-else class="empty-state"><p>No dispatch entries found</p></div>
+                    </div>
+
+                    <div v-if="canCreate" class="card">
+                        <button class="btn btn-primary btn-block btn-lg" @click="window.open('/app/dispatch-entry','_self')">
+                            &#10133; New Dispatch Entry
+                        </button>
+                    </div>
+                </div>
+            `,
+            setup() {
+                const loading = ref(true);
+                const entries = ref([]);
+                const canCreate = computed(() => hasRole("Dispatch User", "Dispatch Operator", "Dispatch Manager", "System Manager"));
+                function badge(s) {
+                    const map = { "Pending": "badge-yellow", "In Queue": "badge-blue", "Processed": "badge-green", "Failed": "badge-red" };
+                    return map[s] || "badge-gray";
+                }
+                onMounted(async () => {
+                    try {
+                        const res = await api.resource("Dispatch Entry").list([["docstatus", "!=", 2]], ["name","customer","customer_name","total_qty","processing_status","creation"], 50);
+                        entries.value = res.data || [];
+                    } catch (e) { toast("Failed to load dispatches", "error"); }
+                    finally { loading.value = false; }
+                });
+                return { loading, entries, canCreate, badge };
+            }
+        };
+
+        // --- RMA View ---
+        const RMA = {
+            template: `
+                <div>
+                    <div class="stats-grid" style="margin-bottom:10px;">
+                        <div class="stat-card" style="border-left-color:#f59e0b;padding:10px;">
+                            <div class="value" style="font-size:1.2rem">{{ openCount }}</div>
+                            <div class="label">Open</div>
+                        </div>
+                        <div class="stat-card" style="border-left-color:#16a34a;padding:10px;">
+                            <div class="value" style="font-size:1.2rem">{{ completedCount }}</div>
+                            <div class="label">Completed</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>RMA Requests</h3>
+                            <div class="flex gap-2">
+                                <select v-model="statusFilter" class="form-control" style="width:auto;padding:4px 8px;font-size:0.75rem;">
+                                    <option value="">All</option>
+                                    <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div v-if="loading">
+                            <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+                        </div>
+                        <div v-else-if="filtered.length">
+                            <div v-for="rma in filtered" :key="rma.name" class="list-item">
+                                <div class="info">
+                                    <div class="title">{{ rma.name }}</div>
+                                    <div class="sub">{{ rma.item_name || rma.item_code }} &middot; {{ rma.rma_type || '' }}</div>
+                                </div>
+                                <span :class="'badge ' + badge(rma.status)">{{ rma.status }}</span>
+                            </div>
+                        </div>
+                        <div v-else class="empty-state"><p>No RMA requests found</p></div>
+                    </div>
+
+                    <div class="card">
+                        <button class="btn btn-primary btn-block btn-lg" @click="window.open('/app/rma-request','_self')">
+                            &#10133; New RMA Request
+                        </button>
+                    </div>
+                </div>
+            `,
+            setup() {
+                const loading = ref(true);
+                const entries = ref([]);
+                const statusFilter = ref("");
+                const statuses = ["Draft","In Repair","Completed","Pending Approval","Approved for Replacement","Replaced","Cancelled"];
+                const openCount = ref(0);
+                const completedCount = ref(0);
+
+                const filtered = computed(() => {
+                    if (!statusFilter.value) return entries.value;
+                    return entries.value.filter(e => e.status === statusFilter.value);
+                });
+
+                function badge(s) {
+                    const map = { "Draft": "badge-gray", "In Repair": "badge-orange", "Completed": "badge-green", "Pending Approval": "badge-yellow", "Approved for Replacement": "badge-blue", "Replaced": "badge-purple", "Cancelled": "badge-red" };
+                    return map[s] || "badge-gray";
+                }
+
+                onMounted(async () => {
+                    try {
+                        const res = await api.resource("RMA Request").list([["docstatus", "!=", 2]], ["name","item_name","item_code","rma_type","status","creation"], 100);
+                        entries.value = res.data || [];
+                        openCount.value = entries.value.filter(d => !["Completed","Replaced","Cancelled"].includes(d.status)).length;
+                        completedCount.value = entries.value.filter(d => ["Completed","Replaced"].includes(d.status)).length;
+                    } catch (e) { toast("Failed to load RMAs", "error"); }
+                    finally { loading.value = false; }
+                });
+                return { loading, entries, statusFilter, statuses, filtered, openCount, completedCount, badge };
+            }
+        };
+
+        // --- Items / Serial No View ---
+        const Items = {
+            template: `
+                <div>
+                    <div class="card">
+                        <h3 class="mb-2">Search Items</h3>
+                        <div class="flex gap-2">
+                            <input v-model="search" class="form-control" placeholder="Search item code or name..." @keyup.enter="searchItems">
+                            <button class="btn btn-primary btn-sm" @click="searchItems">Search</button>
+                        </div>
+                    </div>
+
+                    <div v-if="items.length" class="card">
+                        <div class="card-header"><h3>Results</h3></div>
+                        <div v-for="item in items" :key="item.name" class="list-item">
+                            <div class="info">
+                                <div class="title">{{ item.name }} {{ item.item_name ? '- ' + item.item_name : '' }}</div>
+                                <div class="sub">Warranty: {{ item.warranty_period || 'N/A' }} days</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="mb-2">Serial Number Lookup</h3>
+                        <div class="flex gap-2">
+                            <input v-model="serialNo" class="form-control" placeholder="Scan or type serial no..." @keyup.enter="lookupSerial">
+                            <button class="btn btn-primary btn-sm" @click="lookupSerial">Lookup</button>
+                        </div>
+                        <div v-if="serialResult" class="mt-2 card" style="margin:8px 0 0;padding:12px;background:#f9fafb;">
+                            <div><strong>{{ serialResult.serial_no }}</strong></div>
+                            <div class="text-sm text-gray">Item: {{ serialResult.item_code }} | Customer: {{ serialResult.customer_name || serialResult.customer }}</div>
+                            <div class="text-sm">Status: <span :class="'badge ' + (serialResult.status === 'Active' ? 'badge-green' : 'badge-gray')">{{ serialResult.status }}</span></div>
+                            <div v-if="serialResult.warranty_expiry_date" class="text-sm">Warranty till: {{ serialResult.warranty_expiry_date }}</div>
+                        </div>
+                    </div>
+                </div>
+            `,
+            setup() {
+                const search = ref("");
+                const items = ref([]);
+                const serialNo = ref("");
+                const serialResult = ref(null);
+
+                async function searchItems() {
+                    if (!search.value) return;
+                    try {
+                        const res = await api.resource("Item").list(
+                            [["item_code", "like", "%" + search.value + "%"]],
+                            ["name", "item_name", "warranty_period"], 20
+                        );
+                        items.value = res.data || [];
+                    } catch (e) { toast("Search failed", "error"); }
+                }
+
+                async function lookupSerial() {
+                    if (!serialNo.value) return;
+                    try {
+                        const res = await api.resource("Serial No").list(
+                            [["serial_no", "=", serialNo.value]],
+                            ["name", "serial_no", "item_code", "customer_name", "customer", "status", "warranty_expiry_date"], 1
+                        );
+                        serialResult.value = (res.data && res.data[0]) || null;
+                        if (!serialResult.value) toast("Serial not found", "warning");
+                    } catch (e) { toast("Lookup failed", "error"); }
+                }
+
+                return { search, items, serialNo, serialResult, searchItems, lookupSerial };
+            }
+        };
+
+        // --- Employee Directory View ---
+        const Directory = {
+            template: `
+                <div>
+                    <div class="card">
+                        <div class="flex gap-2 items-center">
+                            <input v-model="query" class="form-control" placeholder="Search employees..." @keyup.enter="searchEmp">
+                            <button class="btn btn-primary btn-sm" @click="searchEmp">Search</button>
+                        </div>
+                    </div>
+                    <div v-if="loading">
+                        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+                    </div>
+                    <div v-else-if="employees.length">
+                        <div v-for="emp in employees" :key="emp.name" class="card" style="padding:12px;">
+                            <div class="flex items-center gap-3">
+                                <div style="width:40px;height:40px;border-radius:50%;background:#1a73e8;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;">
+                                    {{ (emp.employee_name || '?')[0] }}
+                                </div>
+                                <div class="info" style="flex:1;">
+                                    <div class="title">{{ emp.employee_name }}</div>
+                                    <div class="sub">{{ emp.designation || '' }} {{ emp.department ? '· ' + emp.department : '' }}</div>
+                                </div>
+                                <span class="badge badge-green">{{ emp.status }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="empty-state"><p>Search for employees above</p></div>
+                </div>
+            `,
+            setup() {
+                const query = ref("");
+                const employees = ref([]);
+                const loading = ref(false);
+                async function searchEmp() {
+                    if (!query.value) return;
+                    loading.value = true;
+                    try {
+                        const res = await api.resource("Employee").list(
+                            [["employee_name", "like", "%" + query.value + "%"]],
+                            ["name", "employee_name", "designation", "department", "status"], 30
+                        );
+                        employees.value = res.data || [];
+                    } catch (e) { toast("Search failed", "error"); }
+                    finally { loading.value = false; }
+                }
+                return { query, employees, loading, searchEmp };
+            }
+        };
+
+        // -- Comms View ---
+        const Comms = {
+            template: `
+                <div>
+                    <div v-if="isManager" class="card">
+                        <h3 class="mb-2">Send Announcement</h3>
+                        <div class="form-group">
+                            <label>Subject</label>
+                            <input v-model="subject" class="form-control" placeholder="Announcement subject">
+                        </div>
+                        <div class="form-group">
+                            <label>Message</label>
+                            <textarea v-model="message" class="form-control" placeholder="Write your announcement..."></textarea>
+                        </div>
+                        <button class="btn btn-primary btn-block" @click="sendNotif" :disabled="sending">{{ sending ? 'Sending...' : 'Send Announcement' }}</button>
+                    </div>
+                    <div v-else class="card">
+                        <p class="text-sm text-gray">Contact your manager to send announcements.</p>
+                    </div>
+                </div>
+            `,
+            setup() {
+                const subject = ref("");
+                const message = ref("");
+                const sending = ref(false);
+                const isManager = computed(() => isManager());
+                async function sendNotif() {
+                    if (!subject.value || !message.value) { toast("Fill all fields", "warning"); return; }
+                    sending.value = true;
+                    try {
+                        // Create a Notification document
+                        await api.resource("Notification Log").create({
+                            subject: subject.value,
+                            email_content: message.value,
+                            type: "Alert",
+                            document_type: "User",
+                            document_name: SESSION.user,
+                            for_user: "",
+                        });
+                        toast("Announcement sent!", "success");
+                        subject.value = ""; message.value = "";
+                    } catch (e) { 
+                        // Fallback: try creating a ToDo
+                        try {
+                            await api.resource("ToDo").create({
+                                description: subject.value + '\n' + message.value,
+                                status: 'Open',
+                            });
+                            toast("Announcement logged!", "success");
+                        } catch (e2) {
+                            toast("Failed: " + e.message, "error");
+                        }
+                    }
+                    finally { sending.value = false; }
+                }
+                return { subject, message, sending, isManager, sendNotif };
+            }
+        };
+
+        // --- Expense Claims View ---
+        const ExpenseClaim = {
+            template: `
+                <div>
+                    <div class="stats-grid cols-3" style="margin-bottom:10px;">
+                        <div class="stat-card" style="border-left-color:#f59e0b;padding:10px;">
+                            <div class="value" style="font-size:1.2rem">{{ pendingCount }}</div>
+                            <div class="label">Pending</div>
+                        </div>
+                        <div class="stat-card" style="border-left-color:#16a34a;padding:10px;">
+                            <div class="value" style="font-size:1.2rem">{{ approvedCount }}</div>
+                            <div class="label">Approved</div>
+                        </div>
+                        <div class="stat-card" style="border-left-color:#8b5cf6;padding:10px;">
+                            <div class="value" style="font-size:1.2rem">&#8377; {{ totalAmount }}</div>
+                            <div class="label">Total Claimed</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Expense Claims</h3>
+                            <button class="btn btn-primary btn-sm" @click="showForm = !showForm">{{ showForm ? 'Cancel' : 'New Claim' }}</button>
+                        </div>
+                        <div v-if="loading">
+                            <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+                        </div>
+                        <div v-else-if="claims.length">
+                            <div v-for="c in claims" :key="c.name" class="list-item">
+                                <div class="info">
+                                    <div class="title">{{ c.name }}</div>
+                                    <div class="sub">&#8377; {{ formatAmt(c.total_claimed_amount) }} &middot; {{ c.posting_date }}</div>
+                                </div>
+                                <span :class="'badge ' + statusBadge(c.status)">{{ c.status }}</span>
+                            </div>
+                        </div>
+                        <div v-else class="empty-state"><p>No expense claims yet</p></div>
+                    </div>
+
+                    <div v-if="showForm" class="card">
+                        <h3 class="mb-2">New Expense Claim</h3>
+                        <div class="form-group">
+                            <label>Expense Type</label>
+                            <select v-model="form.expense_type" class="form-control">
+                                <option value="">Select type</option>
+                                <option v-for="et in expenseTypes" :key="et.name" :value="et.name">{{ et.name }}</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount</label>
+                            <input type="number" v-model="form.amount" class="form-control" placeholder="0.00" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Expense Date</label>
+                            <input type="date" v-model="form.expense_date" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea v-model="form.description" class="form-control" placeholder="Describe the expense..." rows="3"></textarea>
+                        </div>
+                        <button class="btn btn-primary btn-block" @click="submitClaim" :disabled="submitting">
+                            {{ submitting ? 'Submitting...' : '&#8377; Submit Expense Claim' }}
+                        </button>
+                    </div>
+                </div>
+            `,
+            setup() {
+                const loading = ref(true);
+                const submitting = ref(false);
+                const showForm = ref(false);
+                const claims = ref([]);
+                const expenseTypes = ref([]);
+                const form = reactive({ expense_type: "", amount: "", expense_date: "", description: "" });
+
+                const pendingCount = computed(() => claims.value.filter(c => c.status === "Draft" || c.status === "Submitted").length);
+                const approvedCount = computed(() => claims.value.filter(c => c.status === "Approved").length);
+                const totalAmount = computed(() => {
+                    const total = claims.value.reduce((s, c) => s + parseFloat(c.total_claimed_amount || 0), 0);
+                    return total.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                });
+
+                function statusBadge(s) {
+                    const map = { "Draft": "badge-gray", "Submitted": "badge-blue", "Approved": "badge-green", "Rejected": "badge-red", "Cancelled": "badge-gray" };
+                    return map[s] || "badge-gray";
+                }
+
+                function formatAmt(v) {
+                    return parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+
+                async function loadClaims() {
+                    loading.value = true;
+                    try {
+                        const empRes = await api.resource("Employee").list([["user_id", "=", SESSION.user]], ["name"], 1);
+                        if (!empRes.data || !empRes.data.length) { loading.value = false; return; }
+                        const employee = empRes.data[0].name;
+
+                        const [claimRes, typeRes] = await Promise.allSettled([
+                            api.resource("Expense Claim").list([["employee", "=", employee], ["docstatus", "!=", 2]], ["name","status","total_claimed_amount","posting_date"], 50),
+                            api.resource("Expense Claim Type").list([], ["name"], 50),
+                        ]);
+
+                        if (claimRes.status === "fulfilled") {
+                            claims.value = (claimRes.value.data || []).reverse();
+                        }
+                        if (typeRes.status === "fulfilled") {
+                            expenseTypes.value = (typeRes.value.data || []);
+                            if (!expenseTypes.value.length) {
+                                // Fallback common types
+                                expenseTypes.value = [
+                                    { name: "Travel" },
+                                    { name: "Accommodation" },
+                                    { name: "Food" },
+                                    { name: "Office Supplies" },
+                                    { name: "Transportation" },
+                                    { name: "Other" },
+                                ];
+                            }
+                        }
+                    } catch (e) {
+                        toast("Failed to load expense claims", "error");
+                    } finally { loading.value = false; }
+                }
+
+                async function submitClaim() {
+                    if (!form.expense_type || !form.amount || !form.expense_date) {
+                        toast("Please fill all required fields", "warning"); return;
+                    }
+                    submitting.value = true;
+                    try {
+                        const empRes = await api.resource("Employee").list([["user_id", "=", SESSION.user]], ["name"], 1);
+                        if (!empRes.data || !empRes.data.length) { toast("No employee record found", "error"); return; }
+
+                        await api.resource("Expense Claim").create({
+                            employee: empRes.data[0].name,
+                            posting_date: form.expense_date,
+                            expenses: [{
+                                expense_type: form.expense_type,
+                                expense_date: form.expense_date,
+                                amount: parseFloat(form.amount),
+                                description: form.description,
+                            }],
+                        });
+                        toast("Expense claim submitted!", "success");
+                        showForm.value = false;
+                        form.expense_type = ""; form.amount = ""; form.expense_date = ""; form.description = "";
+                        await loadClaims();
+                    } catch (e) {
+                        toast("Failed: " + (e.message || JSON.stringify(e)), "error");
+                    } finally { submitting.value = false; }
+                }
+
+                onMounted(loadClaims);
+                return { loading, submitting, showForm, claims, expenseTypes, form, pendingCount, approvedCount, totalAmount, statusBadge, formatAmt, submitClaim };
+            }
+        };
+
+        // --- Mail / Email View (Gmail-like) ---
+        const Mail = {
+            template: `
+                <div>
+                    <!-- Inbox/Sent tabs -->
+                    <div class="card" style="padding:8px 12px;">
+                        <div class="flex gap-2" style="flex-wrap:wrap;">
+                            <button :class="'btn btn-sm ' + (viewFilter === 'Inbox' ? 'btn-primary' : 'btn-ghost')" @click="viewFilter = 'Inbox'; loadMails()">
+                                &#128274; Inbox <span v-if="unreadCount" class="badge badge-red" style="margin-left:4px;">{{ unreadCount }}</span>
+                            </button>
+                            <button :class="'btn btn-sm ' + (viewFilter === 'Sent' ? 'btn-primary' : 'btn-ghost')" @click="viewFilter = 'Sent'; loadMails()">
+                                &#128197; Sent
+                            </button>
+                            <button :class="'btn btn-sm ' + (viewFilter === 'All' ? 'btn-primary' : 'btn-ghost')" @click="viewFilter = 'All'; loadMails()">
+                                &#128230; All
+                            </button>
+                            <div style="flex:1;min-width:120px;">
+                                <input v-model="searchQuery" class="form-control" placeholder="Search mail..." style="font-size:0.78rem;padding:6px 10px;" @keyup.enter="loadMails">
+                            </div>
+                            <button class="btn btn-primary btn-sm" @click="showCompose = true">&#9993; Compose</button>
+                        </div>
+                    </div>
+
+                    <!-- Mail list -->
+                    <div v-if="loading" class="card">
+                        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+                    </div>
+                    <div v-else-if="mails.length" class="card" style="padding:0;">
+                        <div v-for="m in mails" :key="m.name" :class="'list-item ' + (!m.seen ? 'font-bold' : '')" style="padding:10px 14px;cursor:pointer;" @click="openMail(m)">
+                            <div style="width:36px;height:36px;border-radius:50%;background:#1a73e8;color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.85rem;flex-shrink:0;">
+                                {{ (m.sender || '?')[0].toUpperCase() }}
+                            </div>
+                            <div class="info" style="flex:1;min-width:0;">
+                                <div class="title" style="font-size:0.82rem;">
+                                    <span v-if="!m.seen" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#1a73e8;margin-right:6px;"></span>
+                                    {{ m.sender || 'Unknown' }}
+                                </div>
+                                <div class="sub" style="font-size:0.75rem;">
+                                    <strong>{{ m.subject || '(No subject)' }}</strong>
+                                    <span v-if="m.content" class="text-gray"> &mdash; {{ stripHtml(m.content).substring(0, 60) }}...</span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray" style="white-space:nowrap;margin-left:8px;">
+                                {{ formatDate(m.communication_date) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="empty-state">
+                        <div class="icon">&#128231;</div>
+                        <p>{{ viewFilter === 'Inbox' ? 'No emails in inbox' : viewFilter === 'Sent' ? 'No sent emails' : 'No emails found' }}</p>
+                    </div>
+
+                    <!-- Detail view -->
+                    <div v-if="selectedMail" class="card">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3>{{ selectedMail.subject || '(No subject)' }}</h3>
+                            <button class="btn btn-ghost btn-sm" @click="selectedMail = null">&#10005;</button>
+                        </div>
+                        <div class="text-sm text-gray mb-2">
+                            <strong>From:</strong> {{ selectedMail.sender }}<br>
+                            <strong>To:</strong> {{ selectedMail.recipients }}<br>
+                            <span v-if="selectedMail.cc"><strong>CC:</strong> {{ selectedMail.cc }}<br></span>
+                            <strong>Date:</strong> {{ formatDate(selectedMail.communication_date) }}
+                        </div>
+                        <div class="card" style="background:#f9fafb;margin:0;padding:12px;border-radius:8px;font-size:0.85rem;white-space:pre-wrap;word-break:break-word;">
+                            {{ stripHtml(selectedMail.content) }}
+                        </div>
+                    </div>
+
+                    <!-- Compose modal -->
+                    <div :class="'modal-overlay ' + (showCompose ? 'open' : '')" @click="showCompose = false">
+                        <div class="modal" @click.stop>
+                            <div class="modal-handle"></div>
+                            <h2>New Message</h2>
+                            <div class="form-group">
+                                <label>To</label>
+                                <input v-model="compose.to" class="form-control" placeholder="recipient@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Subject</label>
+                                <input v-model="compose.subject" class="form-control" placeholder="Subject">
+                            </div>
+                            <div class="form-group">
+                                <label>Message</label>
+                                <textarea v-model="compose.content" class="form-control" placeholder="Write your message..." rows="5"></textarea>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-primary btn-block" @click="sendMail" :disabled="sending">
+                                    {{ sending ? 'Sending...' : '&#10148; Send' }}
+                                </button>
+                                <button class="btn btn-ghost" @click="showCompose = false">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `,
+            setup() {
+                const loading = ref(true);
+                const sending = ref(false);
+                const mails = ref([]);
+                const selectedMail = ref(null);
+                const showCompose = ref(false);
+                const viewFilter = ref('Inbox');
+                const searchQuery = ref('');
+                const compose = reactive({ to: '', subject: '', content: '' });
+
+                const unreadCount = computed(() => mails.value.filter(m => !m.seen).length);
+
+                function stripHtml(html) {
+                    if (!html) return '';
+                    return html.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+                }
+
+                function formatDate(d) {
+                    if (!d) return '';
+                    const date = new Date(d);
+                    const now = new Date();
+                    const diff = (now - date) / 1000 / 86400;
+                    if (diff < 1) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    if (diff < 7) return date.toLocaleDateString([], { weekday: 'short' });
+                    return date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+                }
+
+                function openMail(m) {
+                    selectedMail.value = m;
+                    // Mark as seen
+                    if (!m.seen) {
+                        api.resource("Communication").update(m.name, { seen: 1 }).catch(() => {});
+                        m.seen = 1;
+                    }
+                }
+
+                async function loadMails() {
+                    loading.value = true;
+                    try {
+                        let filters = [["communication_type", "=", "Communication"], ["email_status", "!=", "Spam"]];
+
+                        if (viewFilter.value === 'Inbox') {
+                            filters.push(["sent_or_received", "=", "Received"]);
+                            filters.push(["recipients", "like", "%" + SESSION.userEmail + "%"]);
+                        } else if (viewFilter.value === 'Sent') {
+                            filters.push(["sender", "=", SESSION.user]);
+                            filters.push(["sender", "like", "%" + SESSION.userEmail + "%"]);
+                        }
+
+                        if (searchQuery.value) {
+                            filters.push(["subject", "like", "%" + searchQuery.value + "%"]);
+                        }
+
+                        const res = await api.resource("Communication").list(
+                            filters,
+                            ["name", "subject", "sender", "recipients", "cc", "content", "communication_date", "sent_or_received", "seen", "email_status"],
+                            50
+                        );
+                        mails.value = (res.data || []).sort((a, b) => new Date(b.communication_date || 0) - new Date(a.communication_date || 0));
+                    } catch (e) {
+                        toast("Failed to load emails: " + e.message, "error");
+                    } finally { loading.value = false; }
+                }
+
+                async function sendMail() {
+                    if (!compose.to || !compose.subject || !compose.content) {
+                        toast("Please fill all fields", "warning"); return;
+                    }
+                    sending.value = true;
+                    try {
+                        await api.resource("Communication").create({
+                            communication_type: "Communication",
+                            communication_medium: "Email",
+                            sent_or_received: "Sent",
+                            subject: compose.subject,
+                            content: compose.content,
+                            sender: SESSION.user,
+                            recipients: compose.to,
+                            email_status: "Open",
+                        });
+                        toast("Email sent!", "success");
+                        showCompose.value = false;
+                        compose.to = ''; compose.subject = ''; compose.content = '';
+                        if (viewFilter.value === 'Sent' || viewFilter.value === 'All') {
+                            await loadMails();
+                        }
+                    } catch (e) {
+                        toast("Failed to send: " + (e.message || JSON.stringify(e)), "error");
+                    } finally { sending.value = false; }
+                }
+
+                onMounted(loadMails);
+                return { loading, sending, mails, selectedMail, showCompose, viewFilter, searchQuery, compose, unreadCount, stripHtml, formatDate, openMail, loadMails, sendMail };
+            }
+        };
+
+        // -- Placeholder for future views ---
+        const Placeholder = {
+            props: ["title", "desc"],
+            template: '<div class="card"><h3>{{ title }}</h3><p class="text-sm text-gray mt-2">{{ desc || "Coming soon." }}</p></div>'
+        };
+
+        // ============================================================
+        // Routes
+        // ============================================================
+        const routes = [
+            { path: "/", redirect: "/dashboard" },
+            { path: "/dashboard", component: Dashboard, meta: { title: "Dashboard" } },
+            { path: "/attendance", component: Attendance, meta: { title: "Attendance" } },
+            { path: "/leaves", component: Leaves, meta: { title: "Leaves" } },
+            { path: "/salary", component: Placeholder, meta: { title: "Salary" }, props: { title: "Salary Slips", desc: "View and download your salary slips." } },
+            { path: "/expenses", component: ExpenseClaim, meta: { title: "Expenses" } },
+            { path: "/dispatch", component: Dispatch, meta: { title: "Dispatch" } },
+            { path: "/rma", component: RMA, meta: { title: "RMA" } },
+            { path: "/items", component: Items, meta: { title: "Items" } },
+            { path: "/directory", component: Directory, meta: { title: "Directory" } },
+            { path: "/comms", component: Comms, meta: { title: "Comms" } },
+            { path: "/mail", component: Mail, meta: { title: "Mail" } },
+        ];
+
+        // ============================================================
+        // Router
+        // ============================================================
+        const router = createRouter({
+            history: createWebHistory("/install/app"),
+            routes,
+        });
+
+        // ============================================================
+        // Main App Component
+        // ============================================================
+        const AppComponent = {
+            template: `
+                <div>
+                    <!-- Offline banner -->
+                    <div v-if="!online" class="offline-banner">&#9888; You are offline — some features may be limited</div>
+
+                    <!-- Toast container -->
+                    <div class="toast-container">
+                        <div v-for="t in toasts" :key="t.id" :class="'toast ' + t.type">{{ t.msg }}</div>
+                    </div>
+
+                    <!-- Drawer overlay -->
+                    <div :class="'drawer-overlay ' + (drawerOpen ? 'open' : '')" @click="drawerOpen = false"></div>
+
+                    <!-- Side drawer -->
+                    <div :class="'drawer ' + (drawerOpen ? 'open' : '')">
+                        <div class="drawer-header">
+                            <h2>Krystaa</h2>
+                            <p>{{ userFullName }}</p>
+                        </div>
+                        <nav class="drawer-nav">
+                            <router-link v-for="item in navItems" :key="item.path" :to="item.path" @click="drawerOpen = false" v-show="item.show">
+                                <span class="icon">{{ item.icon }}</span> {{ item.label }}
+                            </router-link>
+                        </nav>
+                        <div class="drawer-footer">
+                            <button @click="logout">&#128682; Sign out</button>
+                        </div>
+                    </div>
+
+                    <!-- App bar -->
+                    <div class="app-bar">
+                        <button class="menu-btn" @click="drawerOpen = !drawerOpen">&#9776;</button>
+                        <h1>{{ currentTitle }} <span v-if="online" class="badge-dot"></span></h1>
+                        <button class="action-btn" @click="refresh" title="Refresh">&#8635;</button>
+                    </div>
+
+                    <!-- Nav tabs -->
+                    <nav class="nav-tabs">
+                        <router-link to="/dashboard">Dashboard</router-link>
+                        <router-link to="/attendance">Check-in</router-link>
+                        <router-link to="/leaves">Leaves</router-link>
+                        <router-link v-if="showDispatch" to="/dispatch">Dispatch</router-link>
+                        <router-link to="/rma">RMA</router-link>
+                        <router-link to="/items">Items</router-link>
+                        <router-link to="/directory">People</router-link>
+                        <router-link to="/mail">Mail</router-link>
+                    </nav>
+
+                    <!-- Main content -->
+                    <main class="content">
+                        <router-view />
+                    </main>
+                </div>
+            `,
+            setup() {
+                const drawerOpen = ref(false);
+                const online = ref(navigator.onLine);
+                const userFullName = ref(SESSION.fullName || SESSION.user);
+
+                const currentTitle = computed(() => {
+                    return router.currentRoute.value.meta?.title || "Krystaa";
+                });
+
+                const showDispatch = computed(() => isDispatch());
+
+                const navItems = computed(() => [
+                    { path: "/dashboard", label: "Dashboard", icon: "&#128202;", show: true },
+                    { path: "/attendance", label: "Attendance", icon: "&#128197;", show: true },
+                    { path: "/leaves", label: "Leaves", icon: "&#128203;", show: true },
+                    { path: "/salary", label: "Salary", icon: "&#128176;", show: isHR() },
+                    { path: "/expenses", label: "Expenses", icon: "&#128221;", show: true },
+                    { path: "/dispatch", label: "Dispatch", icon: "&#128666;", show: showDispatch.value },
+                    { path: "/rma", label: "RMA Warranty", icon: "&#128295;", show: true },
+                    { path: "/items", label: "Items", icon: "&#128230;", show: true },
+                    { path: "/directory", label: "Directory", icon: "&#128101;", show: true },
+                    { path: "/mail", label: "Mail", icon: "&#9993;", show: true },
+                    { path: "/comms", label: "Comms", icon: "&#128172;", show: true },
+                ]);
+
+                function refresh() {
+                    const route = router.currentRoute.value;
+                    router.push("/dashboard").then(() => {
+                        if (route.path !== "/dashboard") {
+                            setTimeout(() => router.push(route.path), 50);
+                        }
+                    });
+                }
+
+                function logout() {
+                    api.post("/api/method/logout").then(() => {
+                        window.location.href = "/login";
+                    });
+                }
+
+                // Online/offline tracking
+                function updateOnline() { online.value = navigator.onLine; }
+                onMounted(() => {
+                    window.addEventListener("online", updateOnline);
+                    window.addEventListener("offline", updateOnline);
+                });
+                onUnmounted(() => {
+                    window.removeEventListener("online", updateOnline);
+                    window.removeEventListener("offline", updateOnline);
+                });
+
+                // Register service worker
+                onMounted(() => {
+                    if ("serviceWorker" in navigator) {
+                        navigator.serviceWorker.register("/assets/pwa_app/sw.js").catch(() => {});
+                    }
+                    // Request notification permission
+                    if ("Notification" in window && Notification.permission === "default") {
+                        Notification.requestPermission();
+                    }
+                });
+
+                return { drawerOpen, online, userFullName, currentTitle, showDispatch, navItems, refresh, logout };
+            }
+        };
+
+        // ============================================================
+        // Mount
+        // ============================================================
+        const app = createApp(AppComponent);
+        app.use(router);
+        app.mount("#app");
+    </script>
+    {% endraw %}
+</body>
+</html>
