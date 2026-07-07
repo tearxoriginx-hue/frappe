@@ -1,0 +1,28 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:holiday_list_name",
+ "creation": "2026-07-07 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["holiday_list_name", "country", "column_break_3", "holidays"],
+ "fields": [
+  {"fieldname": "holiday_list_name", "fieldtype": "Data", "in_list_view": 1, "label": "Holiday List Name", "reqd": 1, "unique": 1},
+  {"fieldname": "country", "fieldtype": "Select", "label": "Country", "options": "India\nUnited States\nUnited Kingdom\nCanada\nAustralia"},
+  {"fieldname": "column_break_3", "fieldtype": "Column Break"},
+  {"fieldname": "holidays", "fieldtype": "Table", "label": "Holidays", "options": "Holiday"}
+ ],
+ "modified": "2026-07-07 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HRMS2",
+ "name": "Holiday List",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "HR Manager", "share": 1, "write": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "holiday_list_name"
+}

@@ -1,0 +1,26 @@
+{
+ "actions": [],
+ "creation": "2026-07-07 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["expense_type", "expense_date", "description", "amount", "sanctioned_amount"],
+ "fields": [
+  {"fieldname": "expense_type", "fieldtype": "Link", "in_list_view": 1, "label": "Expense Type", "options": "Expense Claim Type", "reqd": 1},
+  {"fieldname": "expense_date", "fieldtype": "Date", "in_list_view": 1, "label": "Expense Date"},
+  {"fieldname": "description", "fieldtype": "Text Editor", "in_list_view": 1, "label": "Description"},
+  {"fieldname": "amount", "fieldtype": "Currency", "in_list_view": 1, "label": "Amount", "options": "Company:company:default_currency", "reqd": 1},
+  {"fieldname": "sanctioned_amount", "fieldtype": "Currency", "in_list_view": 1, "label": "Sanctioned Amount", "options": "Company:company:default_currency"}
+ ],
+ "grid_page_length": 50,
+ "istable": 1,
+ "modified": "2026-07-07 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HRMS2",
+ "name": "Expense Claim Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

@@ -1,0 +1,28 @@
+{
+ "actions": [],
+ "creation": "2026-07-07 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["attendance_settings", "allow_employee_checkin_from_mobile_app", "allow_geolocation_tracking", "section_leave_settings", "leave_approval_notification", "default_leave_types"],
+ "fields": [
+  {"fieldname": "attendance_settings", "fieldtype": "Section Break", "label": "Attendance Settings"},
+  {"default": "1", "fieldname": "allow_employee_checkin_from_mobile_app", "fieldtype": "Check", "label": "Allow Employee Check-in from Mobile App"},
+  {"default": "1", "fieldname": "allow_geolocation_tracking", "fieldtype": "Check", "label": "Allow Geolocation Tracking"},
+  {"fieldname": "section_leave_settings", "fieldtype": "Section Break", "label": "Leave Settings"},
+  {"default": "1", "fieldname": "leave_approval_notification", "fieldtype": "Check", "label": "Send Leave Approval Notification"},
+  {"fieldname": "default_leave_types", "fieldtype": "Small Text", "label": "Default Leave Types", "description": "Comma-separated leave type names"}
+ ],
+ "issingle": 1,
+ "modified": "2026-07-07 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HRMS2",
+ "name": "HR Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "print": 1, "read": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "delete": 1, "email": 1, "print": 1, "read": 1, "role": "HR Manager", "share": 1, "write": 1},
+  {"email": 1, "print": 1, "read": 1, "role": "HR User"}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

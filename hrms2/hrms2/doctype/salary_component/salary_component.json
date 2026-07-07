@@ -1,0 +1,31 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:salary_component",
+ "creation": "2026-07-07 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["salary_component", "type", "is_tax_applicable", "column_break_3", "abbr", "description"],
+ "fields": [
+  {"fieldname": "salary_component", "fieldtype": "Data", "in_list_view": 1, "label": "Salary Component", "reqd": 1, "unique": 1},
+  {"fieldname": "type", "fieldtype": "Select", "in_list_view": 1, "label": "Type", "options": "Earning\nDeduction", "reqd": 1},
+  {"default": "0", "fieldname": "is_tax_applicable", "fieldtype": "Check", "label": "Is Tax Applicable"},
+  {"fieldname": "column_break_3", "fieldtype": "Column Break"},
+  {"fieldname": "abbr", "fieldtype": "Data", "label": "Abbreviation"},
+  {"fieldname": "description", "fieldtype": "Small Text", "label": "Description"}
+ ],
+ "modified": "2026-07-07 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HRMS2",
+ "name": "Salary Component",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "HR Manager", "share": 1, "write": 1},
+  {"email": 1, "print": 1, "read": 1, "role": "HR User"}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "salary_component"
+}
