@@ -1,0 +1,143 @@
+{
+ "actions": [],
+ "creation": "2026-06-28 18:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+   "field_order": [
+    "warranty_settings_section",
+    "default_warranty_days",
+    "require_manager_approval_for_replace",
+    "approval_required_for_warranty_status",
+    "buffer_warranty_section",
+    "allow_buffer_warranty",
+    "buffer_warranty_days",
+    "notification_settings_section",
+    "notify_manager_on_replace_request",
+    "notify_staff_on_approval",
+    "defaults_section",
+    "default_company",
+    "default_branch"
+   ],
+ "fields": [
+  {
+   "fieldname": "warranty_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Warranty Settings"
+  },
+  {
+   "default": "365",
+   "fieldname": "default_warranty_days",
+   "fieldtype": "Int",
+   "label": "Default Warranty Days (if not set on Item)"
+  },
+  {
+   "default": "1",
+   "fieldname": "require_manager_approval_for_replace",
+   "fieldtype": "Check",
+   "label": "Require Manager Approval for Replacement"
+  },
+   {
+    "default": "In Warranty",
+    "fieldname": "approval_required_for_warranty_status",
+    "fieldtype": "Select",
+    "label": "Approval Required for Warranty Status",
+    "options": "None\nIn Warranty\nOut of Warranty\nIn Warranty and Out of Warranty"
+   },
+   {
+    "fieldname": "buffer_warranty_section",
+    "fieldtype": "Section Break",
+    "label": "Buffer Warranty (Out of Warranty Replacement)"
+   },
+   {
+    "default": "1",
+    "fieldname": "allow_buffer_warranty",
+    "fieldtype": "Check",
+    "label": "Allow Buffer Warranty Replacement",
+    "description": "Allow replacements with manager approval when warranty has expired (customer must upload invoice)"
+   },
+   {
+    "default": "90",
+    "fieldname": "buffer_warranty_days",
+    "fieldtype": "Int",
+    "label": "Buffer Warranty Days (grace period after expiry)"
+   },
+   {
+    "fieldname": "notification_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Notification Settings"
+  },
+  {
+   "default": "1",
+   "fieldname": "notify_manager_on_replace_request",
+   "fieldtype": "Check",
+   "label": "Notify Manager on Replacement Request"
+  },
+  {
+   "default": "1",
+   "fieldname": "notify_staff_on_approval",
+   "fieldtype": "Check",
+   "label": "Notify Staff on Approval"
+  },
+  {
+   "fieldname": "defaults_section",
+   "fieldtype": "Section Break",
+   "label": "Defaults"
+  },
+  {
+   "fieldname": "default_company",
+   "fieldtype": "Link",
+   "label": "Default Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "default_branch",
+   "fieldtype": "Link",
+   "label": "Default Branch",
+   "options": "Branch"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-06-28 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "RMA Module",
+ "name": "RMA Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "RMA Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "RMA Staff"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
