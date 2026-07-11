@@ -1,0 +1,100 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2025-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "shortcuts_section",
+  "shortcuts",
+   "settings_section",
+   "enable_push_notifications",
+   "enable_offline_mode",
+   "dashboard_hero_text",
+   "biometric_section",
+   "biometric_secret",
+   "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "shortcuts_section",
+   "fieldtype": "Section Break",
+   "label": "Dashboard Shortcuts"
+  },
+  {
+   "fieldname": "shortcuts",
+   "fieldtype": "Table",
+   "label": "Shortcuts",
+   "options": "PWA Shortcut"
+  },
+  {
+   "fieldname": "settings_section",
+   "fieldtype": "Section Break",
+   "label": "Settings"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_push_notifications",
+   "fieldtype": "Check",
+   "label": "Enable Push Notifications"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_offline_mode",
+   "fieldtype": "Check",
+   "label": "Enable Offline Mode"
+  },
+   {
+    "default": "Welcome to Krystaa",
+    "fieldname": "dashboard_hero_text",
+    "fieldtype": "Data",
+    "label": "Dashboard Hero Text"
+   },
+   {
+    "collapsible": 1,
+    "fieldname": "biometric_section",
+    "fieldtype": "Section Break",
+    "label": "Biometric Integration"
+   },
+   {
+    "description": "Shared secret key that biometric devices must send to authenticate",
+    "fieldname": "biometric_secret",
+    "fieldtype": "Password",
+    "label": "Biometric API Secret"
+   },
+   {
+    "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "PWA Settings",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "PWA",
+ "name": "PWA Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "",
+ "track_changes": 0
+}

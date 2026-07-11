@@ -1,0 +1,94 @@
+{
+ "actions": [],
+ "creation": "2025-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "label",
+  "icon",
+  "route",
+  "column_break_1",
+  "icon_bg_color",
+  "icon_text_color",
+  "visible",
+  "section_break_1",
+  "allowed_roles",
+  "badge_field"
+ ],
+ "fields": [
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label",
+   "reqd": 1
+  },
+  {
+   "default": "shortcut",
+   "fieldname": "icon",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Icon (Material Symbol)"
+  },
+  {
+   "fieldname": "route",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Route"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "bg-blue-100",
+   "fieldname": "icon_bg_color",
+   "fieldtype": "Data",
+   "label": "Icon BG Color (Tailwind)"
+  },
+  {
+   "default": "text-blue-600",
+   "fieldname": "icon_text_color",
+   "fieldtype": "Data",
+   "label": "Icon Text Color (Tailwind)"
+  },
+  {
+   "default": "1",
+   "fieldname": "visible",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Visible"
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Access Control"
+  },
+  {
+   "description": "Comma-separated roles. Leave empty for all users.",
+   "fieldname": "allowed_roles",
+   "fieldtype": "Small Text",
+   "label": "Allowed Roles"
+  },
+  {
+   "description": "Optional: field name to fetch badge count from",
+   "fieldname": "badge_field",
+   "fieldtype": "Data",
+   "label": "Badge Field"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "PWA",
+ "name": "PWA Shortcut",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "",
+ "track_changes": 0
+}
