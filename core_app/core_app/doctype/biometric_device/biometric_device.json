@@ -13,10 +13,16 @@
   "branch",
   "company",
   "is_active",
-  "last_sync_time",
-  "notes_section",
-  "notes"
- ],
+   "last_sync_time",
+    "connection_section",
+    "test_connection_btn",
+    "last_test_result",
+    "view_punch_logs",
+    "setup_instructions_sb",
+   "setup_instructions_html",
+   "notes_section",
+   "notes"
+  ],
  "fields": [
   {
    "fieldname": "device_name",
@@ -70,17 +76,50 @@
    "fieldtype": "Check",
    "label": "Is Active"
   },
-  {
-   "fieldname": "last_sync_time",
-   "fieldtype": "Datetime",
-   "label": "Last Sync Time",
-   "read_only": 1
-  },
-  {
-   "fieldname": "notes_section",
-   "fieldtype": "Section Break",
-   "label": "Notes"
-  },
+   {
+    "fieldname": "last_sync_time",
+    "fieldtype": "Datetime",
+    "label": "Last Sync Time",
+    "read_only": 1
+   },
+   {
+    "fieldname": "connection_section",
+    "fieldtype": "Section Break",
+    "label": "Connection"
+   },
+   {
+    "fieldname": "test_connection_btn",
+    "fieldtype": "Button",
+    "label": "Test Connection"
+   },
+   {
+    "fieldname": "last_test_result",
+    "fieldtype": "Small Text",
+    "label": "Last Test Result",
+    "read_only": 1
+   },
+   {
+    "fieldname": "view_punch_logs",
+    "fieldtype": "HTML",
+    "options": "<a href='/app/biometric-punch-log' class='btn btn-default btn-xs'>View All Punch Logs →</a>"
+   },
+   {
+    "fieldname": "setup_instructions_sb",
+    "fieldtype": "Section Break",
+    "label": "Setup Instructions",
+    "collapsible": 1
+   },
+   {
+    "fieldname": "setup_instructions_html",
+    "fieldtype": "HTML Editor",
+    "label": "",
+    "read_only": 1
+   },
+   {
+    "fieldname": "notes_section",
+    "fieldtype": "Section Break",
+    "label": "Notes"
+   },
   {
    "fieldname": "notes",
    "fieldtype": "Small Text",

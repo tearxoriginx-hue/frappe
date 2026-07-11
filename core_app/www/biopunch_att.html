@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 40px;
+            max-width: 560px;
+            width: 90%;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-dot.active {
+            background: #28a745;
+        }
+        .status-dot.inactive {
+            background: #dc3545;
+        }
+        h1 {
+            font-size: 24px;
+            margin: 0 0 8px;
+            color: #1a1a2e;
+        }
+        .status {
+            font-size: 16px;
+            color: #6c757d;
+            margin-bottom: 24px;
+        }
+        .url-box {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-family: "SF Mono", Consolas, monospace;
+            font-size: 13px;
+            word-break: break-all;
+            margin-bottom: 12px;
+        }
+        .url-box label {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6c757d;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .footer {
+            margin-top: 24px;
+            font-size: 13px;
+            color: #adb5bd;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>
+            <span class="status-dot {{ 'active' if is_active else 'inactive' }}"></span>
+            Biometric Punch Endpoint
+        </h1>
+        <p class="status">
+            {{ 'Endpoint is active and ready to receive punches' if is_active else 'Endpoint is disabled' }}
+        </p>
+
+        <div class="url-box">
+            <label>Short URL (recommended for devices)</label>
+            {{ endpoint_url }}
+        </div>
+
+        <div class="url-box">
+            <label>API Method URL</label>
+            {{ api_url }}
+        </div>
+
+        <div class="url-box" style="{{ 'background: #fff3cd; border-color: #ffc107;' if not secret_configured else '' }}">
+            <label>Secret Key</label>
+            {{ 'Configured in HR Settings' if secret_configured else 'Not configured — go to HR Settings > Biometric Settings' }}
+        </div>
+
+        <div class="footer">
+            Core App &mdash; Biometric Integration
+        </div>
+    </div>
+</body>
+</html>
