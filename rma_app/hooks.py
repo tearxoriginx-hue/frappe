@@ -21,6 +21,13 @@ has_permission = {
     "RMA Request": "rma_app.permissions.rma_request_has_permission",
 }
 
+doc_events = {
+    "RMA Request": {
+        "after_insert": "rma_app.api.notifications.notify_on_create",
+        "on_update": "rma_app.api.notifications.notify_on_update",
+    },
+}
+
 scheduler_events = {
     "daily": [
         "rma_app.tasks.daily_overdue_alerts",

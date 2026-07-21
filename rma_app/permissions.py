@@ -11,13 +11,10 @@ def rma_request_query(user):
     if "RMA Manager" in frappe.get_roles(user) or "System Manager" in frappe.get_roles(user):
         return ""
 
-    # Use ignore_permissions=True to avoid circular dependency:
-    #   permissions.py -> Employee lookup -> Employee permissions -> permissions.py
     employee = frappe.db.get_value(
         "Employee",
         {"user_id": user},
         "branch",
-        ignore_permissions=True,
     )
     if employee:
         return f"`tabRMA Request`.branch = {frappe.db.escape(employee)}"
@@ -38,12 +35,10 @@ def rma_request_has_permission(doc, ptype, user):
         if ptype in ("create", "submit"):
             return True
 
-        # Use ignore_permissions=True to avoid circular dependency
         employee = frappe.db.get_value(
             "Employee",
             {"user_id": user},
             "branch",
-            ignore_permissions=True,
         )
         if employee and doc.branch == employee:
             return True

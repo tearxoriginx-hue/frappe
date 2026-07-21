@@ -1,5 +1,5 @@
 import frappe
-from frappe.utils import nowdate, add_days, getdate, get_datetime, now
+from frappe.utils import nowdate, add_days, add_months, getdate, get_datetime, now
 from frappe import _
 
 
@@ -7,20 +7,18 @@ from frappe import _
 def daily_overdue_alerts():
     """
     Daily scheduler:
-    - Find RMAs in 'In Repair' or 'Pending Approval' for > 3 days
+    - Find RMAs in 'Processing' for > 3 days
     - Notify relevant managers via email
     - Log success/failure
     """
     overdue_date = add_days(nowdate(), -3)
 
-    # Find overdue RMAs
     overdue_rmas = frappe.db.sql(
         """
         SELECT r.name, r.status, r.branch, r.rma_type, e.user_id, r.modified
         FROM `tabRMA Request` r
         LEFT JOIN `tabEmployee` e ON e.branch = r.branch AND e.designation = 'RMA Manager'
-        WHERE r.docstatus = 1
-          AND r.status IN ('In Repair', 'Pending Approval')
+        WHERE r.status = 'Processing'
           AND r.modified < %s
     """,
         (overdue_date,),
@@ -55,25 +53,24 @@ def daily_overdue_alerts():
 def auto_archive_old_rmas():
     """
     Monthly scheduler:
-    - Set is_archived=1 for RMAs completed > 12 months ago
+    - Set is_archived=1 for RMAs completed > N months ago
     """
     try:
         settings = frappe.get_single("RMA Settings")
-        months = getattr(settings, "auto_archive_months", 12)
-        cutoff = add_days(nowdate(), -months * 30)
+        months = getattr(settings, "auto_archive_months", 12) or 12
+        cutoff = add_months(nowdate(), -months)
 
-        count = frappe.db.sql(
+        frappe.db.sql(
             """
             UPDATE `tabRMA Request`
             SET is_archived = 1
-            WHERE docstatus = 1
-              AND is_archived = 0
-              AND status IN ('Completed', 'Replaced', 'Cancelled')
+            WHERE is_archived = 0
+              AND status IN ('Repaired', 'Replaced', 'Cancelled')
               AND completed_date < %s
         """,
             (cutoff,),
         )
 
-        frappe.logger().info(f"Archived {count} old RMAs")
+        frappe.logger().info(f"Auto-archive completed for RMAs older than {months} months")
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Auto-archive RMA failed")

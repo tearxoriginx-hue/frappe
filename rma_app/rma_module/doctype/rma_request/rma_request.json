@@ -5,20 +5,22 @@
   "doctype": "DocType",
   "engine": "InnoDB",
   "field_order": [
+    "section_break_header",
     "serial_no",
     "item_code",
     "item_name",
     "customer",
-    "branch",
-    "company",
-    "posting_date",
-    "column_break_details",
     "customer_name",
+    "replacement_date",
+    "status",
+    "branch",
+    "column_break_header",
+    "posting_date",
     "sale_date",
     "warranty_expiry",
     "warranty_status",
     "warranty_days",
-    "status",
+    "company",
     "section_break_rma",
     "rma_type",
     "column_break_rma",
@@ -31,7 +33,6 @@
     "column_break_replace",
     "replacement_serial_no",
     "replacement_item_code",
-    "replacement_dispatch_entry",
     "audit_log",
     "section_break_dates",
     "completed_date",
@@ -39,6 +40,11 @@
     "amended_from"
   ],
   "fields": [
+    {
+      "fieldname": "section_break_header",
+      "fieldtype": "Section Break",
+      "label": ""
+    },
     {
       "fieldname": "serial_no",
       "fieldtype": "Link",
@@ -56,7 +62,8 @@
       "in_list_view": 1,
       "label": "Item Code",
       "options": "Item",
-      "read_only": 1
+      "read_only": 1,
+      "hidden": 1
     },
     {
       "fetch_from": "serial_no.item_name",
@@ -72,7 +79,8 @@
       "fieldtype": "Link",
       "label": "Customer",
       "options": "Customer",
-      "read_only": 1
+      "read_only": 1,
+      "hidden": 1
     },
     {
       "fetch_from": "serial_no.branch",
@@ -81,7 +89,11 @@
       "label": "Branch",
       "options": "Branch",
       "read_only": 1,
-      "reqd": 1
+      "hidden": 1
+    },
+    {
+      "fieldname": "column_break_header",
+      "fieldtype": "Column Break"
     },
     {
       "fetch_from": "serial_no.company",
@@ -98,14 +110,14 @@
       "label": "Posting Date",
       "reqd": 1,
       "default": "Today",
-      "read_only": 1
+      "read_only": 1,
+      "hidden": 1
     },
     {
       "fieldname": "column_break_details",
       "fieldtype": "Column Break"
     },
     {
-      "fetch_from": "serial_no.customer_name",
       "fieldname": "customer_name",
       "fieldtype": "Data",
       "label": "Customer Name",
@@ -115,7 +127,7 @@
       "fieldname": "sale_date",
       "fieldtype": "Date",
       "in_list_view": 1,
-      "label": "Sale Date",
+      "label": "Sale / Posting Date",
       "read_only": 1
     },
     {
@@ -147,8 +159,8 @@
       "in_list_view": 1,
       "in_standard_filter": 1,
       "label": "Status",
-      "options": "Draft\nIn Repair\nCompleted\nPending Approval\nApproved for Replacement\nReplaced\nCancelled",
-      "default": "Draft",
+      "options": "Processing\nRepaired\nReplaced\nCancelled",
+      "read_only": 1,
       "reqd": 1
     },
     {
@@ -161,7 +173,7 @@
       "fieldtype": "Select",
       "in_list_view": 1,
       "label": "RMA Type",
-      "options": "\nRepair\nReplacement",
+      "options": "Repair\nReplacement",
       "reqd": 1
     },
     {
@@ -169,35 +181,30 @@
       "fieldtype": "Column Break"
     },
     {
-      "depends_on": "eval:doc.rma_type=='Repair'",
       "fieldname": "repair_notes",
       "fieldtype": "Small Text",
       "label": "Repair Notes",
       "description": "Describe the issue and repair performed"
     },
     {
-      "depends_on": "eval:doc.rma_type=='Replacement'",
       "fieldname": "section_break_replacement",
       "fieldtype": "Section Break",
       "label": "Replacement Details"
     },
     {
-      "depends_on": "eval:doc.warranty_status=='Out of Warranty' && doc.rma_type=='Replacement'",
       "fieldname": "buffer_warranty",
       "fieldtype": "Check",
       "label": "Buffer Warranty (Out of Warranty - Invoice Required)",
       "description": "Check this if customer is out of warranty but has an original invoice. Manager verification required."
     },
     {
-      "depends_on": "eval:doc.buffer_warranty==1 && doc.rma_type=='Replacement'",
       "fieldname": "invoice_image",
       "fieldtype": "Attach Image",
       "label": "Invoice / Bill Image",
       "description": "Upload the customer's original purchase invoice/bill for manager verification",
-      "reqd": 1
+      "reqd": 0
     },
     {
-      "depends_on": "eval:doc.rma_type=='Replacement'",
       "fieldname": "invoice_verified",
       "fieldtype": "Check",
       "label": "Invoice Verified",
@@ -205,7 +212,6 @@
       "description": "Set by manager when invoice is verified"
     },
     {
-      "depends_on": "eval:doc.rma_type=='Replacement'",
       "fieldname": "manager_verified_by",
       "fieldtype": "Link",
       "label": "Verified By",
@@ -213,34 +219,22 @@
       "read_only": 1
     },
     {
-      "depends_on": "eval:doc.rma_type=='Replacement'",
       "fieldname": "column_break_replace",
       "fieldtype": "Column Break"
     },
     {
-      "depends_on": "eval:doc.rma_type=='Replacement'",
       "fieldname": "replacement_serial_no",
-      "fieldtype": "Link",
+      "fieldtype": "Data",
       "label": "Replacement Serial No",
-      "options": "Serial No",
-      "read_only": 1,
-      "unique": 1
+      "unique": 1,
+      "description": "Type or scan the replacement serial number"
     },
     {
-      "depends_on": "eval:doc.rma_type=='Replacement'",
-      "fetch_from": "replacement_serial_no.item_code",
       "fieldname": "replacement_item_code",
       "fieldtype": "Data",
       "label": "Replacement Item Code",
-      "read_only": 1
-    },
-    {
-      "depends_on": "eval:doc.rma_type=='Replacement'",
-      "fieldname": "replacement_dispatch_entry",
-      "fieldtype": "Link",
-      "label": "Replacement Dispatch Entry",
-      "options": "Dispatch Entry",
-      "read_only": 1
+      "read_only": 1,
+      "hidden": 1
     },
     {
       "fieldname": "audit_log",
@@ -276,12 +270,18 @@
       "options": "RMA Request",
       "print_hide": 1,
       "read_only": 1
+    },
+    {
+      "fieldname": "replacement_date",
+      "fieldtype": "Datetime",
+      "label": "Replacement Date",
+      "read_only": 1
     }
   ],
   "index_web_pages_for_search": 1,
-  "is_submittable": 1,
+  "is_submittable": 0,
   "links": [],
-  "modified": "2026-06-28 18:00:00.000000",
+  "modified": "2026-07-17 16:16:05.161839",
   "modified_by": "Administrator",
   "module": "RMA Module",
   "name": "RMA Request",
@@ -336,24 +336,12 @@
   "sort_order": "DESC",
   "states": [
     {
-      "color": "Gray",
-      "title": "Draft"
-    },
-    {
       "color": "Orange",
-      "title": "In Repair"
+      "title": "Processing"
     },
     {
       "color": "Green",
-      "title": "Completed"
-    },
-    {
-      "color": "Yellow",
-      "title": "Pending Approval"
-    },
-    {
-      "color": "Blue",
-      "title": "Approved for Replacement"
+      "title": "Repaired"
     },
     {
       "color": "Purple",

@@ -109,9 +109,16 @@ def _prepare_html(html):
 
 def _generate_pdf(html, pw_options):
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = p.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-gpu",
+            ],
+        )
         page = browser.new_page()
-        page.set_content(html, wait_until="networkidle")
+        page.set_content(html, wait_until="domcontentloaded")
         pdf_bytes = page.pdf(**pw_options)
         browser.close()
         return pdf_bytes
