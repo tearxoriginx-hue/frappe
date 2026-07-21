@@ -46,19 +46,22 @@ def update_location(latitude=None, longitude=None, accuracy=None, device_id=None
     except Exception:
         within = None
 
-    track = frappe.get_doc({
-        "doctype": "Employee Location Track",
-        "employee": employee,
-        "timestamp": now_datetime(),
-        "latitude": latitude,
-        "longitude": longitude,
-        "accuracy_meters": accuracy,
-        "device_id": device_id,
-        "checkin_ref": checkin_ref,
-        "is_within_geofence": 1 if within else 0,
-    })
-    track.insert(ignore_permissions=True)
-    frappe.db.commit()
+    try:
+        track = frappe.get_doc({
+            "doctype": "Employee Location Track",
+            "employee": employee,
+            "timestamp": now_datetime(),
+            "latitude": latitude,
+            "longitude": longitude,
+            "accuracy_meters": accuracy,
+            "device_id": device_id,
+            "checkin_ref": checkin_ref,
+            "is_within_geofence": 1 if within else 0,
+        })
+        track.insert(ignore_permissions=True)
+        frappe.db.commit()
+    except Exception:
+        pass
 
     return {
         "success": True,

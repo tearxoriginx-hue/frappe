@@ -6,25 +6,28 @@ from frappe.utils import now_datetime
 
 
 @frappe.whitelist()
-def get_today_checkins():
+def get_today_checkins(date=None):
     user = frappe.session.user
     roles = frappe.get_roles()
-    if not set(roles) & {"HR User", "HR Manager", "System Manager"}:
+    if not set(roles) & {"System Manager", "HR Manager"}:
         frappe.throw(_("Permission denied"))
 
-    today = frappe.utils.today()
+    today = date or frappe.utils.today()
 
     employees = frappe.get_all(
         "Employee",
         filters={"status": "Active"},
         fields=["name", "employee_name", "attendance_type", "designation", "department",
-                "checkin_geofence_type"],
+                "branch", "checkin_geofence_type"],
         order_by="employee_name asc",
     )
 
     checkins = frappe.get_all(
         "Employee Checkin",
-        filters={"time": [">=", f"{today} 00:00:00"], "time": ["<=", f"{today} 23:59:59"]},
+        filters=[
+            ["time", ">=", f"{today} 00:00:00"],
+            ["time", "<=", f"{today} 23:59:59"],
+        ],
         fields=["employee", "log_type", "time", "latitude", "longitude", "device_id",
                 "checkin_within_geofence", "checkin_ip_address", "checkin_selfie"],
         order_by="time asc",
@@ -35,12 +38,16 @@ def get_today_checkins():
         emp_checkins.setdefault(c.employee, []).append(c)
 
     # Get latest location track per employee
-    location_tracks = frappe.get_all(
-        "Employee Location Track",
-        filters={"timestamp": [">=", f"{today} 00:00:00"]},
-        fields=["employee", "latitude", "longitude", "timestamp", "is_within_geofence"],
-        order_by="timestamp desc",
-    )
+    location_tracks = []
+    try:
+        location_tracks = frappe.get_all(
+            "Employee Location Track",
+            filters={"timestamp": [">=", f"{today} 00:00:00"]},
+            fields=["employee", "latitude", "longitude", "timestamp", "is_within_geofence"],
+            order_by="timestamp desc",
+        )
+    except Exception:
+        pass  # Doctype may not exist yet
     emp_latest_track = {}
     for lt in location_tracks:
         if lt.employee not in emp_latest_track:
@@ -94,6 +101,7 @@ def get_today_checkins():
             "attendance_type": emp.attendance_type or "Biometric",
             "designation": emp.designation or "",
             "department": emp.department or "",
+            "branch": emp.branch or "",
             "checkin_geofence_type": emp.checkin_geofence_type or "SOFT",
             "checked_in": checked_in,
             "check_in_time": check_in_time,
@@ -123,7 +131,7 @@ def get_employee_tracks(employee=None):
     """Get location tracks for one or all employees today (for map rendering)."""
     user = frappe.session.user
     roles = frappe.get_roles()
-    if not set(roles) & {"HR User", "HR Manager", "System Manager"}:
+    if not set(roles) & {"System Manager", "HR Manager"}:
         frappe.throw(_("Permission denied"))
 
     today = frappe.utils.today()
@@ -146,25 +154,13 @@ def get_employee_tracks(employee=None):
 
 
 @frappe.whitelist()
-def get_employee_summary():
+def get_employee_summary(date=None):
     user = frappe.session.user
     roles = frappe.get_roles()
-    if not set(roles) & {"HR User", "HR Manager", "System Manager"}:
+    if not set(roles) & {"System Manager", "HR Manager"}:
         frappe.throw(_("Permission denied"))
 
-    pipeline = [
-        {"$match": {"status": "Active"}},
-        {"$group": {"_id": "$department", "count": {"$sum": 1}}},
-    ]
-    try:
-        dept_data = frappe.get_all("Employee", filters={"status": "Active"}, fields=["department"], pluck="department")
-        dept_counts = {}
-        for d in dept_data:
-            dept_counts[d or "Unassigned"] = dept_counts.get(d or "Unassigned", 0) + 1
-    except Exception:
-        dept_counts = {}
-
-    today = frappe.utils.today()
+    today = date or frappe.utils.today()
     total_active = frappe.db.count("Employee", {"status": "Active"})
     on_leave = frappe.db.count("Leave Application", {
         "status": "Approved",
@@ -176,7 +172,6 @@ def get_employee_summary():
         "total_active": total_active,
         "on_leave_today": on_leave,
         "present_today": total_active - on_leave,
-        "by_department": [{"department": k, "count": v} for k, v in sorted(dept_counts.items(), key=lambda x: -x[1])],
     }
 
 
@@ -244,3 +239,22 @@ def export_payroll(month, year):
         "file_name": fname,
         "record_count": len(slips),
     }
+
+@frappe.whitelist()
+def get_employee_attendance(employee, days=7):
+    user = frappe.session.user
+    roles = frappe.get_roles()
+    if not set(roles) & {"System Manager", "HR Manager"}:
+        frappe.throw(_("Permission denied"))
+    today = frappe.utils.today()
+    from datetime import timedelta, datetime
+    start = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=days-1)).strftime("%Y-%m-%d")
+    logs = frappe.get_all("Employee Checkin",
+        filters=[
+            ["employee", "=", employee],
+            ["time", ">=", f"{start} 00:00:00"],
+            ["time", "<=", f"{today} 23:59:59"],
+        ],
+        fields=["name", "log_type", "time", "device_id", "latitude", "longitude"],
+        order_by="time desc")
+    return {"logs": logs, "count": len(logs)}

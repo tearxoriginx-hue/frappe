@@ -3,12 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Krystaa</title>
-    <link rel="manifest" href="/assets/pwa_app/manifest.json">
+    <title>{{ site_name or "Krystaa Suite" }}</title>
+    <link rel="manifest" href="/install/manifest.json">
+    <link rel="icon" href="{{ favicon_url }}" sizes="any">
+    <link rel="apple-touch-icon" href="/assets/pwa_app/icons/icon-192.svg">
     <meta name="theme-color" content="#004ac6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="stylesheet" href="/assets/pwa_app/lib/leaflet/leaflet.css" />
+    <script src="/assets/pwa_app/lib/leaflet/leaflet.js"></script>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.prod.js"></script>
@@ -79,6 +86,9 @@
         body { background-color: #f7f9fb; color: #191c1e; -webkit-tap-highlight-color: transparent; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .custom-marker { background: none !important; border: none !important; }
+        .leaflet-popup-content-wrapper { border-radius: 12px !important; font-family: system-ui !important; }
+        .leaflet-popup-content { margin: 12px 16px !important; }
         .delay-100 { animation-delay: 0.1s; } .delay-150 { animation-delay: 0.15s; } .delay-200 { animation-delay: 0.2s; }
         .delay-250 { animation-delay: 0.25s; } .delay-300 { animation-delay: 0.3s; } .delay-350 { animation-delay: 0.35s; }
         .pill-shadow { box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05); }
@@ -87,13 +97,80 @@
         .gap-gutter { gap: 12px; }
         .p-md { padding: 16px; }
         .space-y-gutter > :not([hidden]) ~ :not([hidden]) { --tw-space-y-reverse: 0; margin-top: calc(12px * (1 - var(--tw-space-y-reverse))); margin-bottom: calc(12px * var(--tw-space-y-reverse)); }
+    
+        .geofence-pulse {
+            animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .4; }
+        }
     </style>
+<script>
+    // Capture install prompt early — before any page JS
+    window._deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window._deferredInstallPrompt = e;
+    });
+</script>
 </head>
 <body class="flex flex-col min-h-screen font-body-md overflow-x-hidden">
+{% if is_guest %}
+    <div id="guest-app" class="flex items-center justify-center min-h-screen p-8" style="background: #f7f9fb;">
+        <div class="text-center max-w-sm">
+            {% if app_logo_url %}
+            <img src="{{ app_logo_url }}" alt="Logo" class="w-24 h-24 mx-auto mb-6 rounded-2xl shadow-lg object-contain">
+            {% endif %}
+            <h1 class="text-[32px] font-bold text-[#191c1e] mb-2" style="font-family: Manrope, sans-serif;">{{ app_name }}</h1>
+            <button id="guestActionBtn" class="mt-6 w-full px-6 py-4 rounded-2xl text-white text-[14px] font-bold shadow-lg active:scale-95 transition-all" style="background: #004ac6; font-family: Inter, sans-serif;">
+                <span class="align-middle mr-2" style="display: inline-block; font-size: 20px; line-height: 1;"></span>
+                <span id="guestActionLabel"></span>
+            </button>
+            <p id="guestActionHint" class="mt-4 text-[13px] text-[#737686]" style="font-family: Inter, sans-serif;"></p>
+        </div>
+    </div>
+    <script>
+        (function() {
+            var isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+            var btn = document.getElementById('guestActionBtn');
+            var label = document.getElementById('guestActionLabel');
+            var hint = document.getElementById('guestActionHint');
+            var icon = btn.querySelector('.align-middle');
+
+            if (isStandalone) {
+                icon.textContent = '🔑';
+                label.textContent = 'Login';
+                btn.onclick = function() { window.location.href = '/login?redirect-to=/install/app'; };
+                hint.textContent = 'Tap to login with your credentials.';
+            } else {
+                icon.textContent = '📲';
+                label.textContent = 'Install App';
+                hint.textContent = 'Install the app on your device, then login with your credentials.';
+                btn.onclick = function() {
+                    var evt = window._deferredInstallPrompt;
+                    if (!evt) { hint.textContent = 'Install not supported on this browser. Try opening in Chrome.'; return; }
+                    evt.prompt();
+                    evt.userChoice.then(function() { window._deferredInstallPrompt = null; });
+                };
+            }
+            if ("serviceWorker" in navigator) {
+                navigator.serviceWorker.register("/assets/pwa_app/sw.js?v=" + (Date.now())).catch(function() {});
+            }
+        })();
+    </script>
+{% else %}
     <div id="app">
-        <div class="flex flex-col items-center justify-center h-screen bg-primary gap-4">
-            <div class="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-            <p class="text-white/90 font-semibold">Krystaa</p>
+        <div class="flex flex-col gap-3 p-4 animate-pulse">
+            <div class="h-8 w-3/4 rounded-xl bg-surface-container-low"></div>
+            <div class="h-16 rounded-2xl bg-surface-container-low"></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="h-20 rounded-2xl bg-surface-container-low"></div>
+                <div class="h-20 rounded-2xl bg-surface-container-low"></div>
+            </div>
+            <div class="h-12 rounded-xl bg-surface-container-low"></div>
+            <div class="h-12 rounded-xl bg-surface-container-low"></div>
+            <div class="h-12 rounded-xl bg-surface-container-low"></div>
         </div>
     </div>
 
@@ -102,22 +179,12 @@
         // Session data from server
         // ============================================================
         const SESSION = {
-            user: "{{ user }}",
-            userEmail: "{{ user_email }}",
+            user: {{ user | tojson }},
+            userEmail: {{ user_email | tojson }},
             roles: {{ roles | tojson }},
-            csrf: "{{ csrf_token }}",
-            fullName: "{{ full_name or user }}"
+            csrf: {{ csrf_token | tojson }},
+            fullName: {{ (full_name or user) | tojson }}
         };
-
-        // Shared drawer state
-        window._appState = { drawerOpen: false, notifications: [], installPromptEvent: null, showInstallPrompt: false };
-
-        // Capture install prompt event for later use
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            window._appState.installPromptEvent = e;
-            window._appState.showInstallPrompt = true;
-        });
 
         {% raw %}
         // ============================================================
@@ -182,7 +249,7 @@
         const hasRole = (...roles) => roles.some(r => SESSION.roles.includes(r));
         const isRMA = () => hasRole("RMA Staff", "RMA Manager", "System Manager");
         const isDispatch = () => hasRole("Dispatch User", "Dispatch Operator", "Dispatch Manager", "System Manager");
-        const isHR = () => hasRole("HR User", "HR Manager", "System Manager");
+        const isHR = () => hasRole("System Manager", "HR Manager");
         const isManager = () => hasRole("RMA Manager", "Dispatch Manager", "HR Manager", "System Manager");
 
         // ============================================================
@@ -222,7 +289,7 @@
                             <button @click="toggleDrawer" class="w-10 h-10 flex items-center justify-center bg-white/15 backdrop-blur-md rounded-full text-white active:scale-95 transition-all">
                                 <span class="material-symbols-outlined">menu</span>
                             </button>
-                            <div class="flex items-center gap-2 bg-white/15 backdrop-blur-md pl-3 pr-2 py-1.5 rounded-full">
+                            <div @click="$router.push('/profile')" class="flex items-center gap-2 bg-white/15 backdrop-blur-md pl-3 pr-2 py-1.5 rounded-full cursor-pointer active:scale-95 transition-all">
                                 <span class="text-white text-label-sm font-medium">{{ displayName }}</span>
                                 <div class="w-7 h-7 rounded-full overflow-hidden border border-white/30 bg-white/20 flex items-center justify-center text-white text-label-sm font-bold">{{ displayInitial }}</div>
                             </div>
@@ -463,7 +530,7 @@
                                     </div>
                                     <span class="material-symbols-outlined text-outline">chevron_right</span>
                                 </router-link>
-                                <button @click="showAdvanceForm = !showAdvanceForm" class="bg-surface-container-lowest p-md rounded-xl flex items-center justify-between border border-outline-variant pill-shadow hover:bg-surface-container-low transition-colors text-left w-full">
+                                <button @click="openAdvanceOverlay" class="bg-surface-container-lowest p-md rounded-xl flex items-center justify-between border border-outline-variant pill-shadow hover:bg-surface-container-low transition-colors text-left w-full">
                                     <div class="flex items-center gap-sm">
                                         <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-purple-600">
                                             <span class="material-symbols-outlined">account_balance_wallet</span>
@@ -483,13 +550,104 @@
                                 </router-link>
                             </section>
 
-                            <!-- Advance form -->
-                            <div v-if="showAdvanceForm" class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/10 soft-shadow space-y-3">
-                                <h3 class="text-label-md font-bold text-on-surface">Request Employee Advance</h3>
-                                <input type="number" v-model="advanceForm.amount" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface" placeholder="Amount" min="1">
-                                <input type="number" v-model="advanceForm.repayment_months" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface" placeholder="Repayment months" min="1" max="24">
-                                <textarea v-model="advanceForm.purpose" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface" rows="2" placeholder="Purpose"></textarea>
-                                <button @click="submitAdvance" :disabled="advSubmitting" class="w-full py-3 rounded-xl bg-primary text-white text-label-md font-bold active:scale-[0.98] transition-all">{{ advSubmitting ? 'Submitting...' : 'Submit Advance Request' }}</button>
+                            <!-- Advance Request Overlay -->
+                            <div v-if="showAdvanceOverlay" class="fixed inset-0 z-50 bg-[#f4fcef] overflow-y-auto" style="font-family: Inter, sans-serif;">
+                                <header class="fixed top-0 left-0 w-full z-50 bg-white border-b border-[#bdcab9] flex items-center justify-between px-4 h-12">
+                                    <div class="flex items-center gap-2">
+                                        <button @click="closeAdvanceOverlay" class="flex items-center justify-center w-10 h-10 active:scale-95 transition-transform">
+                                            <span class="material-symbols-outlined text-[#171d16]">arrow_back</span>
+                                        </button>
+                                        <h1 class="text-lg font-bold text-[#171d16]">Request an Advance</h1>
+                                    </div>
+                                    <div class="w-8 h-8 rounded-full bg-[#d7e3f9] flex items-center justify-center overflow-hidden">
+                                        <span class="text-xs font-bold text-[#3c4859]">{{ userInitial || 'U' }}</span>
+                                    </div>
+                                </header>
+                                <main class="pt-16 pb-4 px-4 max-w-md mx-auto space-y-4">
+                                    <section class="bg-white rounded-xl p-6 border border-[#bdcab9]" style="box-shadow: 0px 4px 12px rgba(0,0,0,0.05);">
+                                        <div class="flex items-center gap-3 mb-4">
+                                            <div class="w-10 h-10 rounded-full bg-[#006e25]/10 flex items-center justify-center">
+                                                <span class="material-symbols-outlined text-[#006e25]">payments</span>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-lg font-bold text-[#171d16]">New Advance</h2>
+                                                <p class="text-sm text-[#6e7b6b]">Enter request details below</p>
+                                            </div>
+                                        </div>
+                                        <div class="space-y-2 mb-4">
+                                            <label class="text-xs font-semibold text-[#6e7b6b] px-1">Advance Amount</label>
+                                            <div class="relative">
+                                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[#171d16] font-semibold">₹</span>
+                                                <input type="number" v-model="advanceForm.amount" @input="calcRepayment" class="w-full pl-10 pr-4 py-3 bg-white border border-[#bdcab9] text-lg font-bold rounded-lg focus:outline-none focus:border-[#006e25] focus:ring-1 focus:ring-[#006e25]" placeholder="0.00" min="1" :class="{'border-red-400': advanceForm.amount && parseFloat(advanceForm.amount) <= 0}">
+                                            </div>
+                                            <p class="text-xs text-[#6e7b6b] px-1">Max eligibility: ₹ 1,00,000.00</p>
+                                        </div>
+                                        <div class="space-y-2 mb-4">
+                                            <label class="text-xs font-semibold text-[#6e7b6b] px-1">Repayment Duration</label>
+                                            <div class="flex gap-2">
+                                                <button v-for="m in 3" :key="m" @click="advanceForm.repayment_months = m; calcRepayment()"
+                                                    class="flex-1 py-2.5 rounded-lg text-sm font-bold border transition-all active:scale-95"
+                                                    :class="advanceForm.repayment_months === m ? 'bg-[#006e25] text-white border-[#006e25]' : 'bg-white text-[#171d16] border-[#bdcab9] hover:border-[#006e25]'">
+                                                    {{ m }} Month{{ m > 1 ? 's' : '' }}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <label class="text-xs font-semibold text-[#6e7b6b] px-1">Reason for Request</label>
+                                            <textarea v-model="advanceForm.purpose" class="w-full px-4 py-3 bg-white border border-[#bdcab9] text-sm rounded-lg focus:outline-none focus:border-[#006e25] focus:ring-1 focus:ring-[#006e25]" placeholder="Explain the purpose of this advance..." rows="3"></textarea>
+                                        </div>
+                                    </section>
+                                    <section class="bg-[#006e25] text-white rounded-xl p-6 relative overflow-hidden" style="box-shadow: 0px 4px 12px rgba(0,0,0,0.05);">
+                                        <div class="absolute top-0 right-0 p-4 opacity-20">
+                                            <span class="material-symbols-outlined text-[80px]" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+                                        </div>
+                                        <div class="relative z-10">
+                                            <h3 class="text-lg font-bold mb-1">Repayment Plan</h3>
+                                            <p class="text-sm opacity-90 mb-4">Estimated deduction schedule</p>
+                                            <div class="space-y-2 bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20">
+                                                <div class="flex justify-between items-center py-1 border-b border-white/10">
+                                                    <span class="text-xs opacity-80">Monthly Deduction</span>
+                                                    <span class="text-lg font-bold text-white">₹ {{ monthlyDeduction }}</span>
+                                                </div>
+                                                <div class="flex justify-between items-center py-1 border-b border-white/10">
+                                                    <span class="text-xs opacity-80">Duration</span>
+                                                    <span class="text-sm font-semibold text-white">{{ repaymentMonths }} Months</span>
+                                                </div>
+                                                <div class="flex justify-between items-center py-1">
+                                                    <span class="text-xs opacity-80">First Installment</span>
+                                                    <span class="text-sm font-semibold text-white">{{ firstInstallment }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="mt-4 flex justify-between items-center">
+                                                <div class="flex -space-x-2">
+                                                    <div v-for="m in Math.min(repaymentMonths, 5)" :key="m" class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white font-bold text-xs" :class="m === 1 ? 'bg-white text-[#006e25]' : 'bg-white/20 text-white'">{{ m }}</div>
+                                                </div>
+                                                <span class="text-xs italic text-green-200">Automated payroll deduction</span>
+                                            </div>
+                                        </div>
+                                    </section>
+                                    <div class="p-4 bg-[#e9f0e4] rounded-lg border border-[#bdcab9]/30 flex gap-3">
+                                        <span class="material-symbols-outlined text-[#6e7b6b]">info</span>
+                                        <p class="text-xs text-[#6e7b6b]">By submitting this request, you authorize the company to deduct the stipulated amount from your monthly salary until the advance is fully repaid.</p>
+                                    </div>
+                                </main>
+                                <div class="grid grid-cols-2 gap-3 pt-4 pb-2">
+                                    <button @click="closeAdvanceOverlay" class="w-full py-4 rounded-full border border-[#6e7b6b] text-[#171d16] font-semibold bg-white active:scale-95 transition-transform">Cancel</button>
+                                    <button @click="submitAdvance" :disabled="!advanceForm.amount || advSubmitting" class="w-full py-4 rounded-full bg-[#006e25] text-white font-bold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform" :class="{'opacity-60': advSubmitting}">
+                                        <span>{{ advSubmitting ? 'Submitting...' : 'Submit Request' }}</span>
+                                        <span class="material-symbols-outlined text-lg">send</span>
+                                    </button>
+                                </div>
+                                <div v-if="advSuccess" class="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6" @click="closeAdvanceOverlay">
+                                    <div class="bg-white rounded-2xl w-full max-w-xs p-8 text-center" style="box-shadow: 0px 4px 12px rgba(0,0,0,0.05);" @click.stop>
+                                        <div class="w-20 h-20 bg-[#006e25]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <span class="material-symbols-outlined text-[#006e25] text-[48px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                        </div>
+                                        <h2 class="text-lg font-bold text-[#171d16] mb-2">Request Submitted</h2>
+                                        <p class="text-sm text-[#6e7b6b] mb-6">Your request for ₹ {{ Number(advanceForm.amount).toLocaleString('en-IN') }} has been sent for approval. You'll be notified soon.</p>
+                                        <button @click="closeAdvanceOverlay" class="w-full py-3 bg-[#006e25] text-white rounded-full font-bold active:scale-95 transition-transform">Great</button>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Team Request detail overlay -->
@@ -515,9 +673,6 @@
                                         <div class="bg-surface-container-low p-3 rounded-xl"><p class="text-label-sm text-outline">Employee</p><p class="text-label-md font-bold text-on-surface mt-1">{{ selectedTeamReq.employee_name }}</p></div>
                                         <div class="bg-surface-container-low p-3 rounded-xl"><p class="text-label-sm text-outline">Doc Name</p><p class="text-label-md font-bold text-on-surface mt-1">{{ selectedTeamReq.name }}</p></div>
                                         <div class="bg-surface-container-low p-3 rounded-xl"><p class="text-label-sm text-outline">Type</p><p class="text-label-md font-bold text-on-surface mt-1">{{ selectedTeamReq.type }}</p></div>
-                                    </div>
-                                    <div v-if="selectedTeamReq.can_approve && (selectedTeamReq.status === 'Draft' || selectedTeamReq.status === 'Submitted' || selectedTeamReq.status === 'Open')" class="flex gap-3 pt-2">
-                                        <button @click="handleApprove(selectedTeamReq); selectedTeamReq = null" :disabled="actionLoading" class="flex-1 py-3 rounded-xl bg-green-600 text-white text-label-md font-bold active:scale-95 transition-all">{{ actionLoading ? 'Processing...' : 'Approve' }}</button>
                                         <button @click="handleReject(selectedTeamReq); selectedTeamReq = null" :disabled="actionLoading" class="flex-1 py-3 rounded-xl bg-red-600 text-white text-label-md font-bold active:scale-95 transition-all">{{ actionLoading ? 'Processing...' : 'Reject' }}</button>
                                     </div>
                                 </div>
@@ -598,10 +753,41 @@
                 const teamRequests = ref([]);
                 const isHR = ref(false);
                 const attType = ref(null);
+                const userInitial = computed(() => (SESSION.full_name || SESSION.user || '?')[0].toUpperCase());
                 // Advance form
-                const showAdvanceForm = ref(false);
-                const advSubmitting = ref(false);
+                const showAdvanceOverlay = ref(false);
                 const advanceForm = reactive({ amount: "", repayment_months: 1, purpose: "" });
+                const advSuccess = ref(false);
+                const advSubmitting = ref(false);
+                const monthlyDeduction = ref("0.00");
+                const repaymentMonths = ref(1);
+                const firstInstallment = ref("");
+
+
+                function calcRepayment() {
+                    const amount = parseFloat(advanceForm.amount) || 0;
+                    const months = parseInt(advanceForm.repayment_months) || 1;
+                    repaymentMonths.value = months;
+                    monthlyDeduction.value = (amount / months).toFixed(2);
+                    const next = new Date();
+                    next.setMonth(next.getMonth() + 1);
+                    firstInstallment.value = next.toLocaleString('en', { month: 'short', year: 'numeric' });
+                }
+
+                function openAdvanceOverlay() {
+                    showAdvanceOverlay.value = true;
+                    advSuccess.value = false;
+                    calcRepayment();
+                }
+
+                function closeAdvanceOverlay() {
+                    showAdvanceOverlay.value = false;
+                    advSuccess.value = false;
+                    advanceForm.amount = '';
+                    advanceForm.repayment_months = 1;
+                    advanceForm.purpose = '';
+                }
+
 
                 // Selfie capture
                 const showSelfieModal = ref(false);
@@ -660,7 +846,7 @@
                             const d = reqRes.value.message || {};
                             myRequests.value = d.my_requests || [];
                             teamRequests.value = d.team_requests || [];
-                            isHR.value = teamRequests.value.length > 0;
+                            isHR.value = hasRole("System Manager", "HR Manager");
                         }
                         // Fetch attendance type from employee
                         try {
@@ -684,6 +870,7 @@
                         const geo = await getGeoLocation();
                         const res = await api.method('pwa_app.api.attendance.check_in', geo);
                         const data = res.message || {};
+                        if (!data.success) { toast(data.message || 'Check-in failed', 'error'); return; }
                         if (data.warning) toast(data.warning, 'warning', 8000);
                         toast('Checked in!', 'success');
                         await loadAll();
@@ -713,12 +900,13 @@
                         const remaining = [];
                         for (const item of queue) {
                             try {
-                                if (item.action === 'check_in') {
-                                    await api.method('pwa_app.api.attendance.check_in', {});
-                                    toast('Offline check-in synced!', 'success');
-                                } else if (item.action === 'check_out') {
-                                    await api.method('pwa_app.api.attendance.check_out', {});
-                                    toast('Offline check-out synced!', 'success');
+                                const method = item.action === 'check_in' ? 'pwa_app.api.attendance.check_in' : 'pwa_app.api.attendance.check_out';
+                                const res = await api.method(method, {});
+                                const data = res.message || {};
+                                if (data.success) {
+                                    toast('Offline ' + (item.action === 'check_in' ? 'check-in' : 'check-out') + ' synced!', 'success');
+                                } else {
+                                    remaining.push(item);
                                 }
                             } catch (e) {
                                 remaining.push(item);
@@ -739,7 +927,9 @@
                     }
                     try {
                         const geo = await getGeoLocation();
-                        await api.method('pwa_app.api.attendance.check_out', geo);
+                        const res = await api.method('pwa_app.api.attendance.check_out', geo);
+                        const data = res.message || {};
+                        if (!data.success) { toast(data.message || 'Check-out failed', 'error'); return; }
                         toast('Checked out!', 'success');
                         await loadAll();
                         stopLocationTracking();
@@ -811,11 +1001,7 @@
                             purpose: advanceForm.purpose || '',
                             repayment_months: parseInt(advanceForm.repayment_months) || 1,
                         });
-                        toast('Advance request submitted!', 'success');
-                        showAdvanceForm.value = false;
-                        advanceForm.amount = '';
-                        advanceForm.repayment_months = 1;
-                        advanceForm.purpose = '';
+                        advSuccess.value = true;
                         await loadAll();
                     } catch (e) { toast('Failed: ' + (e.message || JSON.stringify(e)), 'error'); }
                     finally { advSubmitting.value = false; }
@@ -848,7 +1034,7 @@
                 onUnmounted(() => {
                     window.removeEventListener("online", syncOfflineQueue);
                 });
-                return { loading, attLoading, activeTab, status, myRequests, teamRequests, displayTeamRequests, teamPageSize, isHR, attType, selectedTeamReq, actionLoading, toggleDrawer, checkIn, checkOut, reqIcon, reqIconBg, reqBadge, showAdvanceForm, advanceForm, advSubmitting, submitAdvance, handleApprove, handleReject, showSelfieModal, selfieImage, selfieUploading, uploadSelfie, skipSelfie, retakeSelfie, onSelfieFile };
+                return { loading, attLoading, activeTab, status, myRequests, teamRequests, displayTeamRequests, teamPageSize, isHR, attType, selectedTeamReq, actionLoading, toggleDrawer, checkIn, checkOut, reqIcon, reqIconBg, reqBadge, showAdvanceOverlay, advanceForm, advSubmitting, advSuccess, monthlyDeduction, repaymentMonths, firstInstallment, calcRepayment, openAdvanceOverlay, closeAdvanceOverlay, submitAdvance, handleApprove, handleReject, showSelfieModal, selfieImage, selfieUploading, uploadSelfie, skipSelfie, retakeSelfie, onSelfieFile, userInitial };
             }
         };
 
@@ -897,6 +1083,64 @@
                                 </div>
                             </div>
                             <div v-else class="text-center py-6 text-outline text-label-sm">No applications yet</div>
+                        </div>
+
+                        <!-- Employee detail overlay -->
+                        <div v-if="selectedEmp" class="fixed inset-0 z-50 bg-white overflow-y-auto">
+                            <div class="sticky top-0 bg-white/95 backdrop-blur-md p-4 border-b border-outline-variant/10 flex items-center gap-3">
+                                <button @click="selectedEmp = null" class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center shrink-0">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                                <h3 class="text-label-md font-bold text-on-surface flex-1 truncate">{{ selectedEmp.employee_name }}</h3>
+                            </div>
+                            <div class="p-4 space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-12 h-12 rounded-full flex items-center justify-center shrink-0" :class="selectedEmp?.checked_in ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'">
+                                        <span class="material-symbols-outlined text-[24px]">{{ selectedEmp?.checked_in ? 'login' : 'logout' }}</span>
+                                    </span>
+                                    <div>
+                                        <h2 class="text-headline-md font-bold text-on-surface">{{ selectedEmp.employee_name }}</h2>
+                                        <p class="text-label-sm text-outline">{{ selectedEmp.designation }} &middot; {{ selectedEmp.department }}</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="bg-surface-container-low p-3 rounded-xl">
+                                        <p class="text-label-sm text-outline">Status</p>
+                                        <p class="text-label-md font-bold text-on-surface mt-1" :class="selectedEmp?.checked_in ? 'text-green-600' : 'text-gray-500'">{{ selectedEmp?.checked_in ? 'Checked In' : 'Not Checked In' }}</p>
+                                    </div>
+                                    <div class="bg-surface-container-low p-3 rounded-xl">
+                                        <p class="text-label-sm text-outline">Attendance Type</p>
+                                        <p class="text-label-md font-bold text-on-surface mt-1">{{ selectedEmp.attendance_type }}</p>
+                                    </div>
+                                    <div v-if="selectedEmp.check_in_time" class="bg-surface-container-low p-3 rounded-xl">
+                                        <p class="text-label-sm text-outline">Check In</p>
+                                        <p class="text-label-md font-bold text-on-surface mt-1">{{ formatTime(selectedEmp.check_in_time) }}</p>
+                                    </div>
+                                    <div v-if="selectedEmp.check_out_time" class="bg-surface-container-low p-3 rounded-xl">
+                                        <p class="text-label-sm text-outline">Check Out</p>
+                                        <p class="text-label-md font-bold text-on-surface mt-1">{{ formatTime(selectedEmp.check_out_time) }}</p>
+                                    </div>
+                                    <div class="bg-surface-container-low p-3 rounded-xl">
+                                        <p class="text-label-sm text-outline">Geofence</p>
+                                        <p class="text-label-md font-bold text-on-surface mt-1" :class="selectedEmp.within_geofence ? 'text-green-600' : 'text-orange-600'">{{ selectedEmp.within_geofence ? 'Within area' : 'Outside area' }}</p>
+                                    </div>
+                                    <div class="bg-surface-container-low p-3 rounded-xl">
+                                        <p class="text-label-sm text-outline">Punches</p>
+                                        <p class="text-label-md font-bold text-on-surface mt-1">{{ selectedEmp.punches }}</p>
+                                    </div>
+                                </div>
+                                <div v-if="selectedEmp.latitude && selectedEmp.longitude" class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline mb-2">Location</p>
+                                    <p class="text-label-sm text-on-surface">Lat: {{ selectedEmp.latitude }}, Lng: {{ selectedEmp.longitude }}</p>
+                                    <a :href="selectedEmp.map_url" target="_blank" class="mt-2 inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-primary text-white text-label-sm font-bold">
+                                        <span class="material-symbols-outlined text-[16px]">location_on</span> Open in Maps
+                                    </a>
+                                </div>
+                                <div v-if="selectedEmp.selfie_url" class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline mb-2">Selfie</p>
+                                    <img :src="selectedEmp.selfie_url" class="w-full max-w-xs rounded-xl border border-outline-variant/10">
+                                </div>
+                            </div>
                         </div>
                     </template>
                 </div>
@@ -1068,22 +1312,108 @@
                 <div class="px-4 py-6 space-y-4">
                     <div class="flex items-center justify-between">
                         <h2 class="text-headline-lg text-on-surface">RMA Requests</h2>
-                        <select v-model="statusFilter" class="px-3 py-2 rounded-xl border border-outline-variant/30 bg-white text-label-sm"><option value="">All</option><option v-for="s in statuses" :key="s" :value="s">{{ s }}</option></select>
+                        <div class="flex gap-2">
+                            <button @click="showForm = true" class="px-4 py-2 rounded-full bg-primary text-white text-label-md font-bold active:scale-95 transition-all">New</button>
+                            <select v-model="statusFilter" class="px-3 py-2 rounded-xl border border-outline-variant/30 bg-white text-label-sm"><option value="">All</option><option v-for="s in statuses" :key="s" :value="s">{{ s }}</option></select>
+                        </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div class="bg-surface-container-lowest p-3 rounded-2xl border border-outline-variant/10 soft-shadow text-center"><p class="text-headline-md font-bold text-on-surface">{{ openCount }}</p><p class="text-label-sm text-outline">Open</p></div>
                         <div class="bg-surface-container-lowest p-3 rounded-2xl border border-outline-variant/10 soft-shadow text-center"><p class="text-headline-md font-bold text-green-600">{{ completedCount }}</p><p class="text-label-sm text-outline">Completed</p></div>
                     </div>
+                    
+                    <!-- Create RMA Overlay Form -->
+                    <div v-if="showForm" class="fixed inset-0 z-50 bg-white overflow-y-auto">
+                        <div class="sticky top-0 bg-white/95 backdrop-blur-md p-4 border-b border-outline-variant/10 flex items-center gap-3">
+                            <button @click="showForm = false" class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                            <h3 class="text-label-md font-bold text-on-surface flex-1">Create RMA Request</h3>
+                            <button @click="submitRma" :disabled="submitting" class="px-4 py-2 rounded-full bg-primary text-white text-label-md font-bold active:scale-95 transition-all">
+                                {{ submitting ? 'Submitting...' : 'Submit' }}
+                            </button>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div>
+                                <label class="text-label-sm text-outline font-medium">Serial No</label>
+                                <select v-model="form.serial_no" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1">
+                                    <option value="">Select serial no</option>
+                                    <option v-for="s in serials" :key="s.name" :value="s.name">{{ s.serial_no }} ({{ s.item_name || s.item_code }})</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-label-sm text-outline font-medium">RMA Type</label>
+                                <select v-model="form.rma_type" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1">
+                                    <option value="Repair">Repair</option>
+                                    <option value="Replacement">Replacement</option>
+                                </select>
+                            </div>
+                            <div v-if="form.rma_type === 'Repair'">
+                                <label class="text-label-sm text-outline font-medium">Repair Notes</label>
+                                <textarea v-model="form.repair_notes" rows="4" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1" placeholder="Describe the issue..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/10 soft-shadow">
                         <div v-if="loading" class="space-y-2"><div v-for="i in 3" :key="i" class="h-14 rounded-xl bg-surface-container-low animate-pulse"></div></div>
                         <div v-else-if="displayList.length" class="space-y-2">
-                            <div v-for="rma in displayList" :key="rma.name" class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low/50 cursor-pointer active:scale-[0.98] transition-all">
-                                <div class="min-w-0 flex-1"><p class="text-label-md font-bold text-on-surface truncate">{{ rma.name }}</p><p class="text-label-sm text-outline truncate">{{ rma.item_name || rma.item_code }}</p></div>
+                            <div v-for="rma in displayList" :key="rma.name" @click="openDetail(rma)" class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low/50 cursor-pointer active:scale-[0.98] transition-all">
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-label-md font-bold text-on-surface truncate">{{ rma.name }}</p>
+                                    <p class="text-label-sm text-outline truncate">SN: {{ rma.serial_no }} &middot; {{ rma.item_name || rma.item_code }}</p>
+                                    <p class="text-label-sm text-outline truncate" v-if="rma.customer">Customer: {{ rma.customer }}</p>
+                                </div>
                                 <span class="px-3 py-1 rounded-full text-label-sm font-bold flex-shrink-0 ml-2" :class="rmaBadge(rma.status)">{{ rma.status }}</span>
                             </div>
                             <button v-if="hasMore" @click="pageSize += 20" class="w-full py-3 text-primary text-label-md font-bold active:scale-[0.98] transition-all">Load more ({{ filtered.length - pageSize }} remaining)</button>
                         </div>
                         <div v-else class="text-center py-6 text-outline text-label-sm">No RMA requests</div>
+                    </div>
+
+                    <!-- RMA Detail overlay -->
+                    <div v-if="selected" class="fixed inset-0 z-50 bg-white overflow-y-auto">
+                        <div class="sticky top-0 bg-white/95 backdrop-blur-md p-4 border-b border-outline-variant/10 flex items-center gap-3">
+                            <button @click="selected = null" class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                            <h3 class="text-label-md font-bold text-on-surface flex-1 truncate">RMA Detail</h3>
+                        </div>
+                        <div v-if="loadingDetail" class="p-4 space-y-3">
+                            <div v-for="i in 4" :key="i" class="h-12 rounded-xl bg-surface-container-low animate-pulse"></div>
+                        </div>
+                        <div v-else-if="selected" class="p-4 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-headline-md font-bold text-on-surface">{{ selected.name }}</h2>
+                                <span class="px-3 py-1 rounded-full text-label-sm font-bold" :class="rmaBadge(selected.status)">{{ selected.status }}</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Serial No</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.serial_no }}</p>
+                                </div>
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Item</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.item_name || selected.item_code }}</p>
+                                </div>
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Customer</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.customer || 'N/A' }}</p>
+                                </div>
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">RMA Type</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.rma_type || 'N/A' }}</p>
+                                </div>
+                            </div>
+                            <div v-if="selected.repair_notes" class="bg-surface-container-low p-3 rounded-xl">
+                                <p class="text-label-sm text-outline">Repair Notes</p>
+                                <p class="text-label-md text-on-surface mt-1 whitespace-pre-wrap">{{ selected.repair_notes }}</p>
+                            </div>
+                            <div class="bg-surface-container-low p-3 rounded-xl">
+                                <p class="text-label-sm text-outline">Created</p>
+                                <p class="text-label-md text-on-surface mt-1">{{ new Date(selected.creation).toLocaleString() }}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `,
@@ -1091,34 +1421,83 @@
                 const loading = ref(true);
                 const entries = ref([]);
                 const statusFilter = ref("");
-                const statuses = ref(["Draft","In Repair","Completed","Pending Approval","Approved for Replacement","Replaced","Cancelled"]);
+                const statuses = ref(["Processing","Repaired","Replaced","Cancelled"]);
                 const pageSize = ref(20);
+                const selected = ref(null);
+                const loadingDetail = ref(false);
                 const openCount = ref(0);
                 const completedCount = ref(0);
                 const filtered = computed(() => statusFilter.value ? entries.value.filter(e => e.status === statusFilter.value) : entries.value);
                 const displayList = computed(() => filtered.value.slice(0, pageSize.value));
                 const hasMore = computed(() => pageSize.value < filtered.value.length);
-                function rmaBadge(s) { return { "Draft": "bg-gray-100 text-gray-600", "In Repair": "bg-orange-100 text-orange-600", "Completed": "bg-green-100 text-green-600", "Pending Approval": "bg-yellow-100 text-yellow-600", "Approved for Replacement": "bg-blue-100 text-blue-600", "Replaced": "bg-purple-100 text-purple-600", "Cancelled": "bg-red-100 text-red-600" }[s] || "bg-gray-100 text-gray-600"; }
+                function rmaBadge(s) { return { "Processing": "bg-orange-100 text-orange-600", "Repaired": "bg-green-100 text-green-600", "Replaced": "bg-purple-100 text-purple-600", "Cancelled": "bg-red-100 text-red-600" }[s] || "bg-gray-100 text-gray-600"; }
 
-                onMounted(async () => {
+                const showForm = ref(false);
+                const submitting = ref(false);
+                const serials = ref([]);
+                const form = reactive({
+                    serial_no: "",
+                    rma_type: "Repair",
+                    repair_notes: ""
+                });
+
+                async function loadRMAs() {
                     loading.value = true;
                     try {
-                        const [res, configRes] = await Promise.allSettled([
-                            api.resource("RMA Request").list([["docstatus", "!=", 2]], ["name","item_name","item_code","status","creation"], 200),
+                        const [res, configRes, sRes] = await Promise.allSettled([
+                            api.resource("RMA Request").list([["docstatus", "!=", 2]], ["name","item_name","item_code","status","creation","serial_no","customer"], 200),
                             api.method('pwa_app.api.utils.get_app_config'),
+                            api.resource("Serial No").list([], ["name", "serial_no", "item_code", "item_name"], 150)
                         ]);
                         if (res.status === 'fulfilled') {
-                            entries.value = res.value.data || [];
-                            openCount.value = entries.value.filter(d => !["Completed","Replaced","Cancelled"].includes(d.status)).length;
-                            completedCount.value = entries.value.filter(d => ["Completed","Replaced"].includes(d.status)).length;
+                            entries.value = (res.value.data || []).sort((a, b) => new Date(b.creation) - new Date(a.creation));
+                            openCount.value = entries.value.filter(d => !["Repaired","Replaced","Cancelled"].includes(d.status)).length;
+                            completedCount.value = entries.value.filter(d => ["Repaired","Replaced"].includes(d.status)).length;
                         }
                         if (configRes.status === 'fulfilled') {
-                            statuses.value = configRes.value.message?.rma_statuses || ["Draft","In Repair","Completed","Pending Approval","Approved for Replacement","Replaced","Cancelled"];
+                            statuses.value = configRes.value.message?.rma_statuses || ["Processing","Repaired","Replaced","Cancelled"];
+                        }
+                        if (sRes.status === 'fulfilled') {
+                            serials.value = sRes.value.data || [];
                         }
                     } catch (e) { toast("Failed to load RMAs", "error"); }
                     finally { loading.value = false; }
-                });
-                return { loading, entries, statusFilter, statuses, filtered, displayList, hasMore, pageSize, openCount, completedCount, rmaBadge };
+                }
+
+                async function submitRma() {
+                    if (!form.serial_no) { toast("Select a serial number", "warning"); return; }
+                    submitting.value = true;
+                    try {
+                        await api.method("pwa_app.api.rma.create_rma_request", {
+                            serial_no: form.serial_no,
+                            rma_type: form.rma_type,
+                            repair_notes: form.repair_notes
+                        });
+                        toast("RMA Request submitted successfully!", "success");
+                        showForm.value = false;
+                        form.serial_no = "";
+                        form.repair_notes = "";
+                        await loadRMAs();
+                    } catch (e) {
+                        toast("Failed to submit RMA: " + (e.message || "Error"), "error");
+                    } finally {
+                        submitting.value = false;
+                    }
+                }
+
+                onMounted(loadRMAs);
+                async function openDetail(rma) {
+                    loadingDetail.value = true;
+                    try {
+                        const res = await api.resource("RMA Request").get(rma.name);
+                        selected.value = res.data;
+                    } catch (e) {
+                        toast("Failed to load RMA details", "error");
+                    } finally {
+                        loadingDetail.value = false;
+                    }
+                }
+                return { loading, entries, statusFilter, statuses, filtered, displayList, hasMore, pageSize, openCount, completedCount, rmaBadge, showForm, submitting, serials, form, submitRma, selected, loadingDetail, openDetail };
             }
         };
 
@@ -1126,17 +1505,133 @@
         const Dispatch = {
             template: `
                 <div class="px-4 py-6 space-y-4">
-                    <h2 class="text-headline-lg text-on-surface">Dispatch Entries</h2>
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-headline-lg text-on-surface">Dispatch Entries</h2>
+                        <button @click="showForm = true" class="px-4 py-2 rounded-full bg-primary text-white text-label-md font-bold active:scale-95 transition-all">New</button>
+                    </div>
+                    
+                    <!-- Create Dispatch Entry Form Overlay -->
+                    <div v-if="showForm" class="fixed inset-0 z-50 bg-white overflow-y-auto">
+                        <div class="sticky top-0 bg-white/95 backdrop-blur-md p-4 border-b border-outline-variant/10 flex items-center gap-3">
+                            <button @click="showForm = false" class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                            <h3 class="text-label-md font-bold text-on-surface flex-1">Create Dispatch Entry</h3>
+                            <button @click="submitDispatch" :disabled="submitting" class="px-4 py-2 rounded-full bg-primary text-white text-label-md font-bold active:scale-95 transition-all">
+                                {{ submitting ? 'Submitting...' : 'Submit' }}
+                            </button>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div>
+                                <label class="text-label-sm text-outline font-medium">Customer</label>
+                                <select v-model="form.customer" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1">
+                                    <option value="">Select customer</option>
+                                    <option v-for="c in customers" :key="c.name" :value="c.name">{{ c.customer_name || c.name }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-label-sm text-outline font-medium">Invoice / Reference No</label>
+                                <input v-model="form.invoice_no" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1" placeholder="Invoice Number">
+                            </div>
+                            <div>
+                                <label class="text-label-sm text-outline font-medium">Branch</label>
+                                <select v-model="form.branch" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1">
+                                    <option value="">Select branch</option>
+                                    <option v-for="b in branches" :key="b.name" :value="b.name">{{ b.name }}</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Products child table -->
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-label-md font-bold text-on-surface">Products & Serials</h4>
+                                    <button @click="addProductRow" class="text-primary text-label-sm font-bold flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[16px]">add</span> Add Row
+                                    </button>
+                                </div>
+                                <div v-for="(p, idx) in form.products" :key="idx" class="p-4 rounded-xl bg-surface-container-low/50 space-y-3 relative border border-outline-variant/20">
+                                    <button @click="removeProductRow(idx)" class="absolute top-2 right-2 text-outline hover:text-red-500">
+                                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                                    </button>
+                                    <div>
+                                        <label class="text-label-sm text-outline font-medium">Item Code</label>
+                                        <select v-model="p.item_code" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1">
+                                            <option value="">Select item</option>
+                                            <option v-for="item in items" :key="item.name" :value="item.name">{{ item.name }} {{ item.item_name ? "- " + item.item_name : "" }}</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="text-label-sm text-outline font-medium">Serial Numbers (One per line)</label>
+                                        <textarea v-model="p.serial_nos" rows="3" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1 font-mono text-sm" placeholder="Scan or enter serials..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/10 soft-shadow">
                         <div v-if="loading" class="space-y-2"><div v-for="i in 3" :key="i" class="h-14 rounded-xl bg-surface-container-low animate-pulse"></div></div>
                         <div v-else-if="displayList.length" class="space-y-2">
-                            <div v-for="e in displayList" :key="e.name" class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low/50">
-                                <div class="min-w-0 flex-1"><p class="text-label-md font-bold text-on-surface truncate">{{ e.name }}</p><p class="text-label-sm text-outline truncate">{{ e.customer_name || e.customer }} &middot; {{ e.total_qty || 0 }} units</p></div>
-                                <span class="px-3 py-1 rounded-full text-label-sm font-bold flex-shrink-0 ml-2" :class="dBadge(e.processing_status)">{{ e.processing_status }}</span>
+                            <div v-for="e in displayList" :key="e.name" @click="openDetail(e)" class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low/50 cursor-pointer active:scale-[0.98] transition-all">
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-label-md font-bold text-on-surface truncate">{{ e.name }}</p>
+                                    <p class="text-label-sm text-outline truncate">{{ e.customer }} &middot; {{ e.total_qty || 0 }} units</p>
+                                </div>
+                                <span class="px-3 py-1 rounded-full text-label-sm font-bold flex-shrink-0 ml-2" :class="dBadge(e.processing_status, e.docstatus)">
+                                    {{ e.docstatus === 0 ? 'Draft' : e.processing_status }}
+                                </span>
                             </div>
                             <button v-if="hasMore" @click="pageSize += 20" class="w-full py-3 text-primary text-label-md font-bold active:scale-[0.98] transition-all">Load more ({{ entries.length - pageSize }} remaining)</button>
                         </div>
                         <div v-else class="text-center py-6 text-outline text-label-sm">No dispatch entries</div>
+                    </div>
+
+                    <!-- Dispatch Detail overlay -->
+                    <div v-if="selected" class="fixed inset-0 z-50 bg-white overflow-y-auto">
+                        <div class="sticky top-0 bg-white/95 backdrop-blur-md p-4 border-b border-outline-variant/10 flex items-center gap-3">
+                            <button @click="selected = null" class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                            <h3 class="text-label-md font-bold text-on-surface flex-1 truncate">Dispatch Detail</h3>
+                        </div>
+                        <div v-if="loadingDetail" class="p-4 space-y-3">
+                            <div v-for="i in 4" :key="i" class="h-12 rounded-xl bg-surface-container-low animate-pulse"></div>
+                        </div>
+                        <div v-else-if="selected" class="p-4 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-headline-md font-bold text-on-surface">{{ selected.name }}</h2>
+                                <span class="px-3 py-1 rounded-full text-label-sm font-bold" :class="dBadge(selected.processing_status, selected.docstatus)">{{ selected.docstatus === 0 ? 'Draft' : selected.processing_status }}</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Customer</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.customer }}</p>
+                                </div>
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Invoice No</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.invoice_no || 'N/A' }}</p>
+                                </div>
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Branch</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.branch || 'N/A' }}</p>
+                                </div>
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Total Qty</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.total_qty || 0 }}</p>
+                                </div>
+                            </div>
+                            <div v-if="selected.products?.length" class="bg-surface-container-low p-3 rounded-xl">
+                                <p class="text-label-sm text-outline mb-2">Products</p>
+                                <div v-for="(p, i) in selected.products" :key="i" class="mb-2 pb-2 border-b border-outline-variant/10 last:border-0">
+                                    <p class="text-label-md font-bold text-on-surface">{{ p.item_code }}</p>
+                                    <p class="text-label-sm text-outline">{{ p.serial_nos }}</p>
+                                </div>
+                            </div>
+                            <div class="bg-surface-container-low p-3 rounded-xl">
+                                <p class="text-label-sm text-outline">Created</p>
+                                <p class="text-label-md text-on-surface mt-1">{{ new Date(selected.creation).toLocaleString() }}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `,
@@ -1144,16 +1639,99 @@
                 const loading = ref(true);
                 const entries = ref([]);
                 const pageSize = ref(20);
+                const selected = ref(null);
+                const loadingDetail = ref(false);
                 const displayList = computed(() => entries.value.slice(0, pageSize.value));
                 const hasMore = computed(() => pageSize.value < entries.value.length);
-                function dBadge(s) { return { "Pending": "bg-yellow-100 text-yellow-600", "In Queue": "bg-blue-100 text-blue-600", "Processed": "bg-green-100 text-green-600", "Failed": "bg-red-100 text-red-600" }[s] || "bg-gray-100 text-gray-600"; }
-                onMounted(async () => {
-                    loading.value = true;
-                    try { const res = await api.resource("Dispatch Entry").list([["docstatus", "!=", 2]], ["name","customer","customer_name","total_qty","processing_status","creation"], 200); entries.value = res.data || []; }
-                    catch (e) { toast("Failed to load dispatches", "error"); }
-                    finally { loading.value = false; }
+                function dBadge(s, ds) {
+                    if (ds === 0) return "bg-gray-100 text-gray-600";
+                    return { "Pending": "bg-yellow-100 text-yellow-600", "In Queue": "bg-blue-100 text-blue-600", "Processed": "bg-green-100 text-green-600", "Failed": "bg-red-100 text-red-600" }[s] || "bg-gray-100 text-gray-600";
+                }
+
+                const showForm = ref(false);
+                const submitting = ref(false);
+                const customers = ref([]);
+                const branches = ref([]);
+                const items = ref([]);
+                const form = reactive({
+                    customer: "",
+                    invoice_no: "",
+                    branch: "",
+                    products: [{ item_code: "", serial_nos: "" }]
                 });
-                return { loading, entries, displayList, hasMore, pageSize, dBadge };
+
+                function addProductRow() {
+                    form.products.push({ item_code: "", serial_nos: "" });
+                }
+
+                function removeProductRow(idx) {
+                    form.products.splice(idx, 1);
+                }
+
+                async function loadMetadata() {
+                    await Promise.allSettled([
+                        (async () => { try { const r = await api.method("pwa_app.api.search.get_customers"); customers.value = (r.message || []).map(c => ({ name: c.name, customer_name: c.customer_name })); } catch (e) {} })(),
+                        (async () => { try { const r = await api.resource("Branch").list([], ["name"], 100); branches.value = r.data || []; } catch (e) {} })(),
+                        (async () => { try { const r = await api.method("pwa_app.api.search.get_items"); items.value = (r.message || []).map(i => ({ name: i.name, item_name: i.item_name })); } catch (e) {} })(),
+                    ]);
+                }
+
+                async function loadDispatches() {
+                    loading.value = true;
+                    try {
+                        const res = await api.resource("Dispatch Entry").list([["docstatus", "!=", 2]], ["name","customer","total_qty","processing_status","creation","docstatus"], 200);
+                        entries.value = (res.data || []).sort((a, b) => new Date(b.creation) - new Date(a.creation));
+                    } catch (e) {
+                        toast("Failed to load dispatches", "error");
+                    } finally {
+                        loading.value = false;
+                    }
+                }
+
+                async function submitDispatch() {
+                    if (!form.customer) { toast("Select a customer", "warning"); return; }
+                    if (form.products.some(p => !p.item_code || !p.serial_nos.trim())) {
+                        toast("Fill all product rows and serial numbers", "warning");
+                        return;
+                    }
+                    submitting.value = true;
+                    try {
+                        await api.method("pwa_app.api.dispatch.create_dispatch_entry", {
+                            customer: form.customer,
+                            invoice_no: form.invoice_no,
+                            branch: form.branch,
+                            products: JSON.stringify(form.products)
+                        });
+                        toast("Dispatch Entry submitted successfully!", "success");
+                        showForm.value = false;
+                        form.customer = "";
+                        form.invoice_no = "";
+                        form.branch = "";
+                        form.products = [{ item_code: "", serial_nos: "" }];
+                        await loadDispatches();
+                    } catch (e) {
+                        toast("Failed to submit dispatch: " + (e.message || "Error"), "error");
+                    } finally {
+                        submitting.value = false;
+                    }
+                }
+
+                onMounted(() => {
+                    loadDispatches();
+                    loadMetadata();
+                });
+                async function openDetail(entry) {
+                    loadingDetail.value = true;
+                    try {
+                        const res = await api.resource("Dispatch Entry").get(entry.name);
+                        selected.value = res.data;
+                    } catch (e) {
+                        toast("Failed to load dispatch details", "error");
+                    } finally {
+                        loadingDetail.value = false;
+                    }
+                }
+                return { loading, entries, displayList, hasMore, pageSize, dBadge, showForm, submitting, customers, branches, items, form, addProductRow, removeProductRow, submitDispatch, selected, loadingDetail, openDetail };
             }
         };
 
@@ -1161,50 +1739,142 @@
         const Items = {
             template: `
                 <div class="px-4 py-6 space-y-4">
-                    <h2 class="text-headline-lg text-on-surface">Items & Serials</h2>
-                    <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/10 soft-shadow space-y-3">
-                        <div class="flex gap-2">
-                            <input v-model="search" class="flex-1 p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface" placeholder="Search item code or name..." @keyup.enter="searchItems">
-                            <button @click="searchItems" class="px-4 py-2 rounded-xl bg-primary text-white text-label-md font-bold active:scale-95 transition-all">Search</button>
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-headline-lg text-on-surface">Items</h2>
+                        <button @click="showForm = true" class="px-4 py-2 rounded-full bg-primary text-white text-label-md font-bold active:scale-95 transition-all">Add</button>
+                    </div>
+
+                    <!-- Add Item Overlay -->
+                    <div v-if="showForm" class="fixed inset-0 z-50 bg-white overflow-y-auto">
+                        <div class="sticky top-0 bg-white/95 backdrop-blur-md p-4 border-b border-outline-variant/10 flex items-center gap-3">
+                            <button @click="showForm = false" class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                            <h3 class="text-label-md font-bold text-on-surface flex-1">New Item</h3>
+                            <button @click="submitItem" :disabled="submitting" class="px-4 py-2 rounded-full bg-primary text-white text-label-md font-bold">{{ submitting ? 'Saving...' : 'Save' }}</button>
                         </div>
-                        <div v-if="items.length" class="space-y-2">
-                            <div v-for="item in items" :key="item.name" class="p-3 rounded-xl bg-surface-container-low/50">
-                                <p class="text-label-md font-bold text-on-surface">{{ item.name }} {{ item.item_name ? '- ' + item.item_name : '' }}</p>
-                                <p class="text-label-sm text-outline">Warranty: {{ item.warranty_period || 'N/A' }} days</p>
+                        <div class="p-4 space-y-4">
+                            <div>
+                                <label class="text-label-sm text-outline font-medium">Item Code *</label>
+                                <input v-model="form.item_code" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1" placeholder="Item code">
+                            </div>
+                            <div>
+                                <label class="text-label-sm text-outline font-medium">Item Name</label>
+                                <input v-model="form.item_name" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1" placeholder="Item name">
+                            </div>
+                            <div>
+                                <label class="text-label-sm text-outline font-medium">Item Group</label>
+                                <select v-model="form.item_group" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1">
+                                    <option value="">Select group</option>
+                                    <option v-for="g in itemGroups" :key="g.name" :value="g.name">{{ g.name }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-label-sm text-outline font-medium">Stock UOM</label>
+                                <input v-model="form.stock_uom" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1" placeholder="e.g. Nos, Pcs, Kg">
                             </div>
                         </div>
                     </div>
-                    <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/10 soft-shadow space-y-3">
-                        <h3 class="text-label-md font-bold text-on-surface">Serial Number Lookup</h3>
-                        <div class="flex gap-2">
-                            <input v-model="serialNo" class="flex-1 p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface" placeholder="Scan or type serial no..." @keyup.enter="lookupSerial">
-                            <button @click="lookupSerial" class="px-4 py-2 rounded-xl bg-primary text-white text-label-md font-bold active:scale-95 transition-all">Lookup</button>
+
+                    <div class="flex gap-2">
+                        <input v-model="query" class="flex-1 p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface" placeholder="Search items..." @keyup.enter="loadItems">
+                    </div>
+                    <div v-if="loading" class="space-y-2"><div v-for="i in 4" :key="i" class="h-16 rounded-2xl bg-surface-container-low animate-pulse"></div></div>
+                    <div v-else-if="items.length" class="space-y-2">
+                        <div v-for="item in items" :key="item.name" @click="selected = item" class="p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/10 soft-shadow cursor-pointer active:scale-[0.98] transition-all">
+                            <p class="text-label-md font-bold text-on-surface">{{ item.name }} {{ item.item_name ? '- ' + item.item_name : '' }}</p>
+                            <p class="text-label-sm text-outline">{{ item.item_group || '' }} {{ item.warranty_period_days ? '\u00b7 Warranty: ' + item.warranty_period_days + ' days' : '' }}</p>
                         </div>
-                        <div v-if="serialResult" class="p-3 rounded-xl bg-surface-container-low/50 space-y-1">
-                            <p class="text-label-md font-bold text-on-surface">{{ serialResult.serial_no }}</p>
-                            <p class="text-label-sm text-outline">Item: {{ serialResult.item_code }} | Customer: {{ serialResult.customer_name || serialResult.customer }}</p>
-                            <p class="text-label-sm">Status: <span class="font-bold" :class="serialResult.status === 'Active' ? 'text-green-600' : 'text-outline'">{{ serialResult.status }}</span></p>
-                            <p v-if="serialResult.warranty_expiry_date" class="text-label-sm text-outline">Warranty till: {{ serialResult.warranty_expiry_date }}</p>
+                    </div>
+                    <div v-else class="text-center py-8 text-outline text-label-sm">{{ query ? 'No items found' : 'Loading items...' }}</div>
+
+                    <!-- Item Detail overlay -->
+                    <div v-if="selected" class="fixed inset-0 z-50 bg-white overflow-y-auto">
+                        <div class="sticky top-0 bg-white/95 backdrop-blur-md p-4 border-b border-outline-variant/10 flex items-center gap-3">
+                            <button @click="selected = null" class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                            <h3 class="text-label-md font-bold text-on-surface flex-1 truncate">{{ selected.item_name || selected.name }}</h3>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div class="bg-surface-container-low p-3 rounded-xl">
+                                <p class="text-label-sm text-outline">Item Code</p>
+                                <p class="text-headline-md font-bold text-on-surface mt-1">{{ selected.name }}</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Item Name</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.item_name || 'N/A' }}</p>
+                                </div>
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Item Group</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.item_group || 'N/A' }}</p>
+                                </div>
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Stock UOM</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.stock_uom || 'N/A' }}</p>
+                                </div>
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Warranty</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.warranty_period_days ? selected.warranty_period_days + ' days' : 'N/A' }}</p>
+                                </div>
+                            </div>
+                            <div class="bg-surface-container-low p-3 rounded-xl">
+                                <p class="text-label-sm text-outline">Created</p>
+                                <p class="text-label-md text-on-surface mt-1">{{ new Date(selected.creation).toLocaleString() }}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             `,
             setup() {
-                const search = ref(""); const items = ref([]); const serialNo = ref(""); const serialResult = ref(null);
-                async function searchItems() {
-                    if (!search.value) return;
-                    try { const res = await api.resource("Item").list([["item_code", "like", "%" + search.value + "%"]], ["name", "item_name", "warranty_period"], 20); items.value = res.data || []; }
-                    catch (e) { toast("Search failed", "error"); }
+                const query = ref("");
+                const items = ref([]);
+                const loading = ref(false);
+                const selected = ref(null);
+                const showForm = ref(false);
+                const submitting = ref(false);
+                const itemGroups = ref([]);
+                const form = reactive({
+                    item_code: "",
+                    item_name: "",
+                    item_group: "",
+                    stock_uom: "Nos"
+                });
+
+                async function loadMeta() {
+                    try { const r = await api.method("pwa_app.api.search.get_doctype_list", { doctype: "Item Group", fields: ["name"] }); itemGroups.value = r.message || []; } catch (e) {}
                 }
-                async function lookupSerial() {
-                    if (!serialNo.value) return;
+
+                async function submitItem() {
+                    if (!form.item_code) { toast("Item code is required", "warning"); return; }
+                    submitting.value = true;
                     try {
-                        const res = await api.resource("Serial No").list([["serial_no", "=", serialNo.value]], ["name","serial_no","item_code","customer_name","customer","status","warranty_expiry_date"], 1);
-                        serialResult.value = res.data?.[0] || null;
-                        if (!serialResult.value) toast("Serial not found", "warning");
-                    } catch (e) { toast("Lookup failed", "error"); }
+                        await api.resource("Item").create({
+                            item_code: form.item_code,
+                            item_name: form.item_name || undefined,
+                            item_group: form.item_group || undefined,
+                            stock_uom: form.stock_uom || "Nos"
+                        });
+                        toast("Item created!", "success");
+                        showForm.value = false;
+                        form.item_code = ""; form.item_name = ""; form.item_group = ""; form.stock_uom = "Nos";
+                        await loadItems();
+                    } catch (e) { toast("Failed: " + (e.message || "Error"), "error"); }
+                    finally { submitting.value = false; }
                 }
-                return { search, items, serialNo, serialResult, searchItems, lookupSerial };
+
+                async function loadItems() {
+                    loading.value = true;
+                    try {
+                        const res = await api.method("pwa_app.api.search.get_items", { query: query.value || undefined });
+                        items.value = (res.message || []).sort((a, b) => new Date(b.creation) - new Date(a.creation));
+                    } catch (e) { toast("Failed to load items", "error"); }
+                    finally { loading.value = false; }
+                }
+
+                onMounted(() => { loadItems(); loadMeta(); });
+                return { query, items, loading, selected, loadItems, showForm, submitting, itemGroups, form, submitItem };
             }
         };
 
@@ -1360,133 +2030,396 @@
         const Customers = {
             template: `
                 <div class="px-4 py-6 space-y-4">
-                    <h2 class="text-headline-lg text-on-surface">Customers</h2>
-                    <div class="flex gap-2">
-                        <input v-model="query" class="flex-1 p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface" placeholder="Search customers..." @keyup.enter="searchCustomers">
-                        <button @click="searchCustomers" class="px-4 py-2 rounded-xl bg-primary text-white text-label-md font-bold active:scale-95 transition-all">Search</button>
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-headline-lg text-on-surface">Customers</h2>
+                        <button @click="showForm = true" class="px-4 py-2 rounded-full bg-primary text-white text-label-md font-bold active:scale-95 transition-all">Add</button>
                     </div>
-                    <div v-if="loading" class="space-y-2"><div v-for="i in 4" :key="i" class="h-16 rounded-2xl bg-surface-container-low animate-pulse"></div></div>
-                    <div v-else-if="customers.length" class="space-y-2">
-                        <div v-for="c in customers" :key="c.name" class="flex items-center gap-3 p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/10 soft-shadow">
-                            <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-label-sm flex-shrink-0">{{ (c.customer_name || c.name || '?')[0] }}</div>
-                            <div class="flex-1 min-w-0"><p class="text-label-md font-bold text-on-surface truncate">{{ c.customer_name || c.name }}</p><p class="text-label-sm text-outline truncate">{{ c.customer_group || '' }} {{ c.territory ? '· ' + c.territory : '' }}</p></div>
+
+                    <!-- Add Customer Overlay -->
+                    <div v-if="showForm" class="fixed inset-0 z-50 bg-white overflow-y-auto">
+                        <div class="sticky top-0 bg-white/95 backdrop-blur-md p-4 border-b border-outline-variant/10 flex items-center gap-3">
+                            <button @click="showForm = false" class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                            <h3 class="text-label-md font-bold text-on-surface flex-1">New Customer</h3>
+                            <button @click="submitCustomer" :disabled="submitting" class="px-4 py-2 rounded-full bg-primary text-white text-label-md font-bold">{{ submitting ? 'Saving...' : 'Save' }}</button>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div>
+                                <label class="text-label-sm text-outline font-medium">Customer Name *</label>
+                                <input v-model="form.customer_name" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1" placeholder="Customer name">
+                            </div>
+                            <div>
+                                <label class="text-label-sm text-outline font-medium">Customer Group</label>
+                                <select v-model="form.customer_group" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1">
+                                    <option value="">Select group</option>
+                                    <option v-for="g in customerGroups" :key="g.name" :value="g.name">{{ g.name }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-label-sm text-outline font-medium">Territory</label>
+                                <select v-model="form.territory" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1">
+                                    <option value="">Select territory</option>
+                                    <option v-for="t in territories" :key="t.name" :value="t.name">{{ t.name }}</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-label-sm text-outline font-medium">Email</label>
+                                    <input v-model="form.email" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1" placeholder="Email">
+                                </div>
+                                <div>
+                                    <label class="text-label-sm text-outline font-medium">Phone</label>
+                                    <input v-model="form.phone" class="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface mt-1" placeholder="Phone">
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div v-else class="text-center py-8 text-outline text-label-sm">Search for customers</div>
+
+                    <div class="flex gap-2">
+                        <input v-model="query" class="flex-1 p-3 rounded-xl border border-outline-variant/30 bg-white text-on-surface" placeholder="Search customers..." @keyup.enter="loadCustomers">
+                    </div>
+
+                    <div v-if="loading" class="space-y-2"><div v-for="i in 4" :key="i" class="h-16 rounded-2xl bg-surface-container-low animate-pulse"></div></div>
+                    <div v-else-if="customers.length" class="space-y-2">
+                        <div v-for="c in customers" :key="c.name" @click="selected = c" class="flex items-center gap-3 p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/10 soft-shadow cursor-pointer active:scale-[0.98] transition-all">
+                            <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-label-sm flex-shrink-0">{{ (c.customer_name || c.name || '?')[0] }}</div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-label-md font-bold text-on-surface truncate">{{ c.customer_name || c.name }}</p>
+                                <p class="text-label-sm text-outline truncate">{{ c.customer_group || '' }} {{ c.territory ? '· ' + c.territory : '' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="text-center py-8 text-outline text-label-sm">No customers found</div>
+
+                    <!-- Customer Detail overlay -->
+                    <div v-if="selected" class="fixed inset-0 z-50 bg-white overflow-y-auto">
+                        <div class="sticky top-0 bg-white/95 backdrop-blur-md p-4 border-b border-outline-variant/10 flex items-center gap-3">
+                            <button @click="selected = null" class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                            <h3 class="text-label-md font-bold text-on-surface flex-1 truncate">{{ selected.customer_name || selected.name }}</h3>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold shrink-0">{{ (selected.customer_name || selected.name || '?')[0] }}</div>
+                                <div>
+                                    <h2 class="text-headline-md font-bold text-on-surface">{{ selected.customer_name || selected.name }}</h2>
+                                    <p class="text-label-sm text-outline">{{ selected.customer_group || 'No group' }} {{ selected.territory ? '· ' + selected.territory : '' }}</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Email</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.email || 'N/A' }}</p>
+                                </div>
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Phone</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.phone || 'N/A' }}</p>
+                                </div>
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Customer Group</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.customer_group || 'N/A' }}</p>
+                                </div>
+                                <div class="bg-surface-container-low p-3 rounded-xl">
+                                    <p class="text-label-sm text-outline">Territory</p>
+                                    <p class="text-label-md font-bold text-on-surface mt-1">{{ selected.territory || 'N/A' }}</p>
+                                </div>
+                            </div>
+                            <div class="bg-surface-container-low p-3 rounded-xl">
+                                <p class="text-label-sm text-outline">Created</p>
+                                <p class="text-label-md text-on-surface mt-1">{{ new Date(selected.creation).toLocaleString() }}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `,
             setup() {
-                const query = ref(""); const customers = ref([]); const loading = ref(false);
-                async function searchCustomers() {
-                    if (!query.value) return;
+                const query = ref("");
+                const customers = ref([]);
+                const loading = ref(false);
+                const selected = ref(null);
+                const showForm = ref(false);
+                const submitting = ref(false);
+                const customerGroups = ref([]);
+                const territories = ref([]);
+                const form = reactive({
+                    customer_name: "",
+                    customer_group: "",
+                    territory: "",
+                    email: "",
+                    phone: ""
+                });
+
+                async function loadCustomers() {
                     loading.value = true;
-                    try { const res = await api.resource("Customer").list([["customer_name", "like", "%" + query.value + "%"]], ["name","customer_name","customer_group","territory"], 30); customers.value = res.data || []; }
-                    catch (e) { toast("Search failed", "error"); }
+                    try {
+                        const res = await api.method("pwa_app.api.search.get_customers", { query: query.value || undefined });
+                        customers.value = (res.message || []).sort((a, b) => new Date(b.creation) - new Date(a.creation));
+                    } catch (e) { toast("Failed to load customers: " + (e.message || "Check permissions"), "error"); }
                     finally { loading.value = false; }
                 }
-                return { query, customers, loading, searchCustomers };
+
+                async function loadMeta() {
+                    await Promise.allSettled([
+                        (async () => { try { const r = await api.method("pwa_app.api.search.get_doctype_list", { doctype: "Customer Group", fields: ["name"] }); customerGroups.value = r.message || []; } catch (e) {} })(),
+                        (async () => { try { const r = await api.method("pwa_app.api.search.get_doctype_list", { doctype: "Territory", fields: ["name"] }); territories.value = r.message || []; } catch (e) {} })(),
+                    ]);
+                }
+
+                async function submitCustomer() {
+                    if (!form.customer_name) { toast("Customer name is required", "warning"); return; }
+                    submitting.value = true;
+                    try {
+                        await api.resource("Customer").create({
+                            customer_name: form.customer_name,
+                            customer_group: form.customer_group || undefined,
+                            territory: form.territory || undefined,
+                            email_id: form.email || undefined,
+                            phone: form.phone || undefined
+                        });
+                        toast("Customer created!", "success");
+                        showForm.value = false;
+                        form.customer_name = ""; form.customer_group = ""; form.territory = ""; form.email = ""; form.phone = "";
+                        await loadCustomers();
+                    } catch (e) { toast("Failed: " + (e.message || "Error"), "error"); }
+                    finally { submitting.value = false; }
+                }
+
+                onMounted(() => { loadCustomers(); loadMeta(); });
+                return { query, customers, loading, selected, showForm, submitting, customerGroups, territories, form, loadCustomers, submitCustomer };
             }
         };
 
         // --- HR Dashboard ---
         const HRDashboard = {
             template: `
-                <div class="px-4 py-6 space-y-4">
-                    <h2 class="text-headline-lg text-on-surface">HR Dashboard</h2>
-
-                    <div v-if="loading" class="space-y-3"><div v-for="i in 6" :key="i" class="h-16 bg-surface-container-low rounded-xl animate-pulse"></div></div>
+                <div class="min-h-screen bg-[#f7f9fb] text-[#191c1e] font-body-lg pb-28">
+                    <div v-if="loading" class="px-5 pt-6 max-w-5xl mx-auto space-y-4">
+                        <div class="grid grid-cols-3 gap-4">
+                            <div v-for="i in 3" :key="i" class="bg-white border border-[#c3c6d7] p-5 animate-pulse"><div class="h-4 w-16 bg-gray-200 rounded mb-2"></div><div class="h-8 w-12 bg-gray-200 rounded"></div></div>
+                        </div>
+                        <div v-for="i in 4" :key="i" class="bg-white border border-[#c3c6d7] p-4 animate-pulse flex items-center gap-3"><div class="w-10 h-10 bg-gray-200 rounded-full"></div><div class="flex-1"><div class="h-4 w-32 bg-gray-200 rounded mb-1"></div><div class="h-3 w-20 bg-gray-200 rounded"></div></div></div>
+                    </div>
                     <template v-else>
-                        <!-- Summary Cards -->
-                        <div class="grid grid-cols-3 gap-3">
-                            <div class="bg-surface-container-lowest p-3 rounded-2xl border border-outline-variant/10 text-center">
-                                <p class="text-headline-md font-bold text-on-surface">{{ summary.total_active || 0 }}</p>
-                                <p class="text-label-sm text-outline">Active</p>
-                            </div>
-                            <div class="bg-surface-container-lowest p-3 rounded-2xl border border-outline-variant/10 text-center">
-                                <p class="text-headline-md font-bold text-green-600">{{ summary.present_today || 0 }}</p>
-                                <p class="text-label-sm text-outline">Present</p>
-                            </div>
-                            <div class="bg-surface-container-lowest p-3 rounded-2xl border border-outline-variant/10 text-center">
-                                <p class="text-headline-md font-bold text-blue-600">{{ (checkins.checked_in_count) || 0 }}</p>
-                                <p class="text-label-sm text-outline">Checked In</p>
-                            </div>
-                        </div>
+                        <div class="px-5 pt-6 max-w-5xl mx-auto space-y-5">
+                            <section class="grid grid-cols-3 gap-4">
+                                <div class="bg-white border border-[#c3c6d7] p-5 flex flex-col items-center justify-center space-y-1">
+                                    <span class="text-[12px] font-bold uppercase tracking-widest text-[#565e74]">Active</span>
+                                    <span class="text-[30px] font-semibold text-[#191c1e]">{{ summary.total_active || 0 }}</span>
+                                </div>
+                                <div class="bg-white border border-[#c3c6d7] p-5 flex flex-col items-center justify-center space-y-1 shadow-[0_4px_0_0_#004ac6]">
+                                    <span class="text-[12px] font-bold uppercase tracking-widest text-[#004ac6]">Present</span>
+                                    <span class="text-[30px] font-semibold text-[#004ac6]">{{ summary.present_today || 0 }}</span>
+                                </div>
+                                <div class="bg-white border border-[#c3c6d7] p-5 flex flex-col items-center justify-center space-y-1">
+                                    <span class="text-[12px] font-bold uppercase tracking-widest text-[#565e74]">Checked In</span>
+                                    <span class="text-[30px] font-semibold text-[#191c1e]">{{ checkins.checked_in_count || 0 }}</span>
+                                </div>
+                            </section>
 
-                        <div v-if="(checkins.outside_geofence_count || 0) > 0" class="bg-orange-50 border border-orange-200 text-orange-700 p-3 rounded-xl text-label-sm flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[18px]">warning</span>
-                            <span><strong>{{ checkins.outside_geofence_count }}</strong> employee(s) checked in outside designated area</span>
-                        </div>
-
-                        <!-- Department breakdown -->
-                        <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/10">
-                            <h3 class="text-label-md font-bold text-on-surface mb-3">By Department</h3>
-                            <div v-if="summary.by_department?.length" class="space-y-2">
-                                <div v-for="d in summary.by_department" :key="d.department" class="flex justify-between items-center p-2 rounded-lg bg-surface-container-low/50">
-                                    <span class="text-label-md text-on-surface">{{ d.department }}</span>
-                                    <span class="text-label-sm font-bold text-primary">{{ d.count }}</span>
+                            <div class="flex gap-3 items-end">
+                                <div class="flex-1">
+                                    <label class="text-[10px] font-bold uppercase tracking-widest text-[#565e74] mb-1 block">DATE</label>
+                                    <input type="date" v-model="selectedDate" @change="loadDashboard" class="w-full px-3 py-2 border border-[#c3c6d7] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#004ac6]">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="text-[10px] font-bold uppercase tracking-widest text-[#565e74] mb-1 block">BRANCH</label>
+                                    <select v-model="branchFilter" @change="updateFiltered" class="w-full px-3 py-2 border border-[#c3c6d7] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#004ac6]">
+                                        <option value="">All Branches</option>
+                                        <option v-for="b in branches" :key="b" :value="b">{{ b }}</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div v-else class="text-center py-4 text-outline text-label-sm">No data</div>
-                        </div>
 
-                        <!-- Today's Check-ins -->
-                        <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/10">
-                            <div class="flex items-center justify-between mb-3">
-                                <h3 class="text-label-md font-bold text-on-surface">Today's Attendance ({{ checkins.date || '--' }})</h3>
+                            <div v-if="(checkins.outside_geofence_count || 0) > 0" class="bg-[#ffdad6] border-l-4 border-[#ba1a1a] px-4 py-2 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[#ba1a1a] text-[20px]" style="font-variation-settings:'FILL' 1;animation:pulse-red 2s cubic-bezier(0.4,0,0.6,1) infinite;">warning</span>
+                                    <p class="text-sm text-[#93000a] font-semibold">{{ checkins.outside_geofence_count }} employee(s) outside geofence</p>
+                                </div>
+                                <button class="bg-[#ba1a1a] text-white px-3 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter hover:opacity-90 transition-opacity">REVIEW ALERTS</button>
                             </div>
-                            <div v-if="displayCheckins.length" class="space-y-2">
-                                <div v-for="emp in displayCheckins" :key="emp.employee" class="p-3 rounded-xl bg-surface-container-low/50 space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <div class="min-w-0 flex-1">
-                                            <p class="text-label-md font-bold text-on-surface truncate">{{ emp.employee_name }}</p>
-                                            <p class="text-label-sm text-outline truncate">{{ emp.designation }} &middot; {{ emp.attendance_type }}</p>
+
+                            <div class="flex items-center justify-between border-b-2 border-[#004ac6] pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[#004ac6]">group</span>
+                                    <h2 class="text-[12px] font-bold uppercase tracking-widest text-[#434655]">Employee Real-Time List ({{ displayCheckins.length }})</h2>
+                                </div>
+                                <button @click="addEmployee" class="flex items-center gap-1 text-[#004ac6] hover:underline">
+                                    <span class="material-symbols-outlined text-[16px]">add</span>
+                                    <span class="text-[10px] font-bold uppercase">ADD</span>
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-3">
+                                <div v-for="emp in displayCheckins" :key="emp.employee">
+                                    <div v-if="emp.geofence_flag !== 'OUTSIDE_GEOFENCE'" @click="openDetail(emp)" class="bg-white border border-[#c3c6d7] p-3 flex items-center justify-between hover:border-[#004ac6] transition-colors cursor-pointer active:scale-[0.99]">
+                                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                                            <div class="w-10 h-10 rounded-full overflow-hidden border border-[#c3c6d7] bg-[#dbe1ff] shrink-0 flex items-center justify-center text-[#004ac6] font-bold text-sm">
+                                                <span>{{ emp.employee_name ? emp.employee_name.charAt(0).toUpperCase() : '?' }}</span>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <h3 class="font-bold text-sm text-[#191c1e] truncate">{{ emp.employee_name }}</h3>
+                                                <p class="text-[10px] text-[#565e74] uppercase truncate">{{ emp.branch || 'No Branch' }} • <span :class="emp?.checked_in ? 'text-[#007d55]' : 'text-[#ba1a1a]'" class="font-bold">{{ emp?.checked_in ? 'IN' : 'OUT' }}</span></p>
+                                            </div>
                                         </div>
-                                        <div class="flex items-center gap-1 shrink-0">
-                                            <span v-if="emp.geofence_flag === 'OUTSIDE_GEOFENCE'" class="text-orange-500" title="Outside geofence">
-                                                <span class="material-symbols-outlined text-[18px]">location_off</span>
-                                            </span>
-                                            <span v-if="emp.has_selfie" class="text-green-500" title="Selfie captured">
-                                                <span class="material-symbols-outlined text-[18px]">camera_alt</span>
-                                            </span>
-                                            <span v-else-if="emp.checked_in && !emp.has_selfie" class="text-gray-400" title="No selfie">
-                                                <span class="material-symbols-outlined text-[18px]">camera_alt</span>
-                                            </span>
-                                            <span class="px-3 py-1 rounded-full text-label-sm font-bold ml-1" :class="emp.checked_in ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'">{{ emp.checked_in ? 'In' : 'Out' }}</span>
+                                        <button @click.stop="openDetail(emp)" class="flex items-center gap-1 text-[#004ac6] hover:underline shrink-0">
+                                            <span class="material-symbols-outlined text-[16px]">payments</span>
+                                            <span class="text-[10px] font-bold uppercase">PAYROLL</span>
+                                        </button>
+                                    </div>
+                                    <div v-else @click="openDetail(emp)" class="bg-white border-2 border-[#ba1a1a] p-3 flex items-center justify-between cursor-pointer active:scale-[0.99]">
+                                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                                            <div class="w-10 h-10 rounded-full overflow-hidden border border-[#c3c6d7] bg-[#ffdad6] shrink-0 flex items-center justify-center text-[#ba1a1a] font-bold text-sm">
+                                                <span>{{ emp.employee_name ? emp.employee_name.charAt(0).toUpperCase() : '?' }}</span>
+                                            </div>
+                                            <div>
+                                                <h3 class="font-bold text-sm text-[#191c1e] truncate">{{ emp.employee_name }}</h3>
+                                                <p class="text-[10px] text-[#ba1a1a] uppercase font-bold">OUTSIDE GEOFENCE</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="flex items-center gap-4 text-label-sm text-outline">
-                                        <span v-if="emp.check_in_time">In: {{ formatTime(emp.check_in_time) }}</span>
-                                        <span v-if="emp.check_out_time">Out: {{ formatTime(emp.check_out_time) }}</span>
-                                        <span v-if="emp.punches">{{ emp.punches }} logs</span>
-                                    </div>
-                                    <div v-if="emp.geofence_flag === 'OUTSIDE_GEOFENCE'" class="text-orange-600 bg-orange-50 px-2 py-1 rounded-lg text-label-sm flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-[16px]">warning</span> Outside designated check-in area
-                                    </div>
-                                    <div v-if="emp.latitude && emp.longitude" class="flex gap-2">
-                                        <a :href="emp.map_url" target="_blank" class="text-primary text-label-sm font-bold flex items-center gap-1">
-                                            <span class="material-symbols-outlined text-[16px]">location_on</span> View on Map
-                                        </a>
+                                        <button @click.stop="openDetail(emp)" class="flex items-center gap-1 text-[#004ac6] hover:underline shrink-0">
+                                            <span class="material-symbols-outlined text-[16px]">payments</span>
+                                            <span class="text-[10px] font-bold uppercase">PAYROLL</span>
+                                        </button>
                                     </div>
                                 </div>
-                                <button v-if="(checkins.employees?.length || 0) > pageSize" @click="pageSize += 20" class="w-full py-3 text-primary text-label-md font-bold">Load more ({{ (checkins.employees?.length || 0) - pageSize }} remaining)</button>
+                                <button v-if="filteredEmployees.length > pageSize" @click="pageSize += 20" class="border-2 border-[#004ac6] text-[#004ac6] px-8 py-2 text-[12px] font-bold uppercase tracking-widest hover:bg-[#004ac6] hover:text-white transition-colors mx-auto mt-2">
+                                    LOAD MORE ({{ filteredEmployees.length - pageSize }})
+                                </button>
+                                <div v-if="!displayCheckins.length" class="text-center py-10 text-[#737686] text-sm">No employees found for this date/branch</div>
                             </div>
-                            <div v-else class="text-center py-6 text-outline text-label-sm">No check-ins recorded today</div>
-                        </div>
 
-                        <!-- Payroll Export -->
-                        <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/10">
-                            <h3 class="text-label-md font-bold text-on-surface mb-3">Payroll Export</h3>
-                            <div class="flex gap-3">
-                                <select v-model="payMonth" class="flex-1 p-3 rounded-xl border border-outline-variant/30 bg-white text-label-sm">
-                                    <option v-for="m in 12" :key="m" :value="m">{{ new Date(2024, m-1).toLocaleString('en', { month: 'long' }) }}</option>
-                                </select>
-                                <select v-model="payYear" class="flex-1 p-3 rounded-xl border border-outline-variant/30 bg-white text-label-sm">
-                                    <option v-for="y in [2024,2025,2026,2027]" :key="y" :value="y">{{ y }}</option>
-                                </select>
+                            <div class="bg-white border border-[#c3c6d7] p-4">
+                                <h3 class="text-sm font-bold text-[#191c1e] mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#004ac6]">payments</span> Payroll Export</h3>
+                                <div class="flex gap-3">
+                                    <select v-model="payMonth" class="flex-1 px-3 py-2 border border-[#c3c6d7] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#004ac6]">
+                                        <option v-for="m in 12" :key="m" :value="m">{{ new Date(2024, m-1).toLocaleString('en', { month: 'long' }) }}</option>
+                                    </select>
+                                    <select v-model="payYear" class="flex-1 px-3 py-2 border border-[#c3c6d7] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#004ac6]">
+                                        <option v-for="y in [2024,2025,2026,2027]" :key="y" :value="y">{{ y }}</option>
+                                    </select>
+                                </div>
+                                <button @click="exportPayroll" :disabled="payExporting" class="w-full mt-3 py-2 bg-[#004ac6] text-white text-xs font-bold uppercase tracking-widest active:scale-[0.98] transition-all">{{ payExporting ? 'Exporting...' : 'Download Payroll CSV' }}</button>
                             </div>
-                            <button @click="exportPayroll" :disabled="payExporting" class="w-full mt-3 py-3 rounded-xl bg-primary text-white text-label-md font-bold active:scale-[0.98] transition-all">{{ payExporting ? 'Exporting...' : 'Download Payroll CSV' }}</button>
                         </div>
                     </template>
+
+                    <!-- Employee detail overlay -->
+                    <div v-if="selectedEmp" class="fixed inset-0 z-50 bg-white overflow-y-auto">
+                        <div class="sticky top-0 bg-white p-4 border-b border-[#c3c6d7] flex items-center z-10">
+                            <button @click="closeDetail" class="flex items-center gap-2 text-[#004ac6] text-xs font-bold uppercase tracking-widest hover:underline">
+                                <span class="material-symbols-outlined text-[18px]">arrow_back</span> Back
+                            </button>
+                        </div>
+                        <div class="p-5 max-w-3xl mx-auto space-y-6">
+                            <!-- Row 1: Name + ID Badge (no avatar) -->
+                            <div>
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    <h1 class="text-2xl font-bold text-[#191c1e]">{{ selectedEmp.employee_name }}</h1>
+                                    <span class="bg-[#dbe1ff] text-[#004ac6] text-xs font-bold px-2 py-0.5 tracking-wide">ID: {{ selectedEmp.employee }}</span>
+                                </div>
+                            </div>
+                            <!-- Row 2: Secondary Info -->
+                            <p class="text-sm text-[#565e74] flex items-center gap-1 flex-wrap">
+                                <span>📍 {{ selectedEmp.branch || 'No Branch' }}</span>
+                                <span class="text-[#c3c6d7]">•</span>
+                                <span>🌐 {{ selectedEmp.attendance_type || 'Attendance' }}</span>
+                                <span v-if="selectedEmp.designation" class="text-[#c3c6d7]">•</span>
+                                <span v-if="selectedEmp.designation">{{ selectedEmp.designation }}</span>
+                            </p>
+
+                            <!-- Attendance Snapshot 2x2 -->
+                            <div>
+                                <h2 class="text-xs font-bold uppercase tracking-widest text-[#434655] mb-3">Attendance Snapshot</h2>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="border border-[#c3c6d7] p-4">
+                                        <p class="text-xs text-[#565e74]">Checked In</p>
+                                        <p class="text-lg font-bold text-[#191c1e] mt-1">{{ selectedEmp.check_in_time ? formatTime(selectedEmp.check_in_time) : '--' }}</p>
+                                    </div>
+                                    <div class="border border-[#c3c6d7] p-4">
+                                        <p class="text-xs text-[#565e74]">Current Status</p>
+                                        <p class="text-lg font-bold mt-1" :class="selectedEmp?.checked_in ? 'text-green-600' : 'text-gray-500'">{{ selectedEmp?.checked_in ? '● Active In' : '○ Checked Out' }}</p>
+                                    </div>
+                                    <div class="border border-[#c3c6d7] p-4">
+                                        <p class="text-xs text-[#565e74]">Expected Out</p>
+                                        <p class="text-lg font-bold text-[#191c1e] mt-1">06:30 PM</p>
+                                    </div>
+                                    <div class="border border-[#c3c6d7] p-4">
+                                        <p class="text-xs text-[#565e74]">Geofence</p>
+                                        <p class="text-lg font-bold mt-1" :class="selectedEmp.within_geofence ? 'text-green-600' : 'text-red-600'">{{ selectedEmp.within_geofence ? '✔ Within Zone' : '✗ Outside' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Last Verification -->
+                            <div>
+                                <h2 class="text-xs font-bold uppercase tracking-widest text-[#434655] mb-3">Last Verification</h2>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div class="border border-[#c3c6d7] p-4 text-center">
+                                        <p class="text-xs text-[#565e74]">Device ID</p>
+                                        <p class="text-sm font-bold text-[#191c1e] mt-1 truncate">{{ selectedEmp.device_id || '--' }}</p>
+                                    </div>
+                                    <div class="border border-[#c3c6d7] p-4 text-center">
+                                        <p class="text-xs text-[#565e74]">IP Address</p>
+                                        <p class="text-sm font-bold text-[#191c1e] mt-1">{{ selectedEmp.ip_address || '--' }}</p>
+                                    </div>
+                                    <div class="border border-[#c3c6d7] p-4 flex items-center justify-center">
+                                        <button @click="showSelfie = true" class="text-[#004ac6] text-xs font-bold uppercase flex items-center gap-1 hover:underline">
+                                            <span class="material-symbols-outlined text-[18px]">photo_camera</span> View Photo
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Selfie Modal -->
+                            <div v-if="showSelfie && selectedEmp.selfie_url" class="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-6" @click="showSelfie = false">
+                                <img :src="selectedEmp.selfie_url" class="max-w-full max-h-[80vh] rounded-lg shadow-2xl" @click.stop>
+                            </div>
+
+                            <!-- Real-Time Location -->
+                            <div>
+                                <h2 class="text-xs font-bold uppercase tracking-widest text-[#434655] mb-3">Real-Time Location</h2>
+                                <div class="border border-[#c3c6d7] p-4">
+                                    <p class="text-xs text-[#565e74] mb-1">Coordinates</p>
+                                    <p class="text-sm font-bold text-[#191c1e]">{{ selectedEmp.latitude || '--' }}, {{ selectedEmp.longitude || '--' }}</p>
+                                    <a v-if="selectedEmp.latitude && selectedEmp.longitude" :href="'https://www.google.com/maps?q=' + selectedEmp.latitude + ',' + selectedEmp.longitude" target="_blank" class="mt-2 inline-flex items-center gap-1 text-xs text-[#004ac6] font-bold hover:underline">
+                                        <span class="material-symbols-outlined text-[16px]">open_in_new</span> Open in Google Maps
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Attendance Log -->
+                            <div>
+                                <h2 class="text-xs font-bold uppercase tracking-widest text-[#434655] mb-3">Attendance Log (Last 7 Days)</h2>
+                                <div v-if="attendanceLog.length" class="border border-[#c3c6d7] overflow-x-auto">
+                                    <table class="w-full text-sm">
+                                        <thead class="bg-gray-50 text-xs text-[#565e74] uppercase tracking-wider">
+                                            <tr>
+                                                <th class="text-left px-3 py-2 font-bold">Date</th>
+                                                <th class="text-left px-3 py-2 font-bold">Time</th>
+                                                <th class="text-left px-3 py-2 font-bold">Type</th>
+                                                <th class="text-left px-3 py-2 font-bold">Device</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-[#c3c6d7]">
+                                            <tr v-for="log in attendanceLog" :key="log.name" class="hover:bg-gray-50">
+                                                <td class="px-3 py-2 text-[#191c1e]">{{ formatDate(log.time) }}</td>
+                                                <td class="px-3 py-2 text-[#191c1e]">{{ formatTime(log.time) }}</td>
+                                                <td class="px-3 py-2">
+                                                    <span class="text-xs font-bold px-2 py-0.5" :class="log.log_type === 'IN' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">{{ log.log_type }}</span>
+                                                </td>
+                                                <td class="px-3 py-2 text-[#565e74] text-xs">{{ log.device_id || '--' }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div v-else class="border border-[#c3c6d7] p-6 text-center text-sm text-[#737686]">
+                                    No attendance records found for the last 7 days.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `,
             setup() {
@@ -1497,23 +2430,65 @@
                 const payMonth = ref(new Date().getMonth() + 1);
                 const payYear = ref(new Date().getFullYear());
                 const payExporting = ref(false);
+                const selectedEmp = ref(null);
+                const selectedDate = ref(new Date().toISOString().split('T')[0]);
+                const branchFilter = ref("");
+                const branches = ref([]);
+                const showSelfie = ref(false);
+                const attendanceLog = ref([]);
 
-                const displayCheckins = computed(() => (checkins.value.employees || []).slice(0, pageSize.value));
+                const todayStr = new Date().toISOString().split('T')[0];
+                const filteredEmployees = computed(() => {
+                    const emps = checkins.value.employees || [];
+                    if (!branchFilter.value) return emps;
+                    return emps.filter(e => e.branch === branchFilter.value);
+                });
+                const displayCheckins = computed(() => filteredEmployees.value.slice(0, pageSize.value));
 
                 function formatTime(t) { if (!t) return ''; const d = new Date(t); return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }); }
+                function formatDate(t) { if (!t) return ''; const d = new Date(t); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+
+                function addEmployee() { window.open('/app/employee/new', '_blank'); }
+
+                async function openDetail(emp) {
+                    selectedEmp.value = emp;
+                    showSelfie.value = false;
+                    attendanceLog.value = [];
+                    try {
+                        const res = await api.method('pwa_app.api.hr_dashboard.get_employee_attendance', { employee: emp.employee, days: 7 });
+                        if (res && res.message) {
+                            attendanceLog.value = res.message.logs || [];
+                        }
+                    } catch(e) {
+                        console.warn('Failed to load attendance log:', e);
+                    }
+                }
+
+                function closeDetail() {
+                    selectedEmp.value = null;
+                    showSelfie.value = false;
+                    attendanceLog.value = [];
+                }
 
                 async function loadDashboard() {
                     loading.value = true;
                     try {
                         const [sRes, cRes] = await Promise.allSettled([
-                            api.method('pwa_app.api.hr_dashboard.get_employee_summary'),
-                            api.method('pwa_app.api.hr_dashboard.get_today_checkins'),
+                            api.method('pwa_app.api.hr_dashboard.get_employee_summary', { date: selectedDate.value }),
+                            api.method('pwa_app.api.hr_dashboard.get_today_checkins', { date: selectedDate.value }),
                         ]);
                         if (sRes.status === 'fulfilled') summary.value = sRes.value.message || {};
-                        if (cRes.status === 'fulfilled') checkins.value = cRes.value.message || {};
+                        if (cRes.status === 'fulfilled') {
+                            checkins.value = cRes.value.message || {};
+                            const bSet = new Set();
+                            (cRes.value.message?.employees || []).forEach(e => { if (e.branch) bSet.add(e.branch); });
+                            branches.value = [...bSet].sort();
+                        }
                     } catch (e) { toast('Failed to load HR data', 'error'); }
                     finally { loading.value = false; }
                 }
+
+                function updateFiltered() { pageSize.value = 20; }
 
                 async function exportPayroll() {
                     payExporting.value = true;
@@ -1533,8 +2508,8 @@
                     finally { payExporting.value = false; }
                 }
 
-                onMounted(loadDashboard);
-                return { loading, summary, checkins, displayCheckins, pageSize, payMonth, payYear, payExporting, formatTime, exportPayroll };
+                onMounted(() => { loadDashboard(); });
+                return { loading, summary, checkins, displayCheckins, pageSize, payMonth, payYear, payExporting, formatTime, formatDate, exportPayroll, selectedEmp, selectedDate, branchFilter, branches, filteredEmployees, todayStr, updateFiltered, addEmployee, openDetail, closeDetail, showSelfie, attendanceLog };
             }
         };
 
@@ -1781,7 +2756,7 @@
                                 <button @click="confirmLogout" class="w-full h-14 rounded-lg flex items-center justify-center gap-xs text-white bg-error hover:bg-error/90 active:scale-95 shadow-lg transition-all font-bold text-lg uppercase tracking-wider">
                                     <span class="material-symbols-outlined">logout</span> Logout
                                 </button>
-                                <p class="text-center mt-lg font-label-sm text-label-sm text-outline uppercase tracking-widest">Version 15.2.0-Alpha</p>
+                                <p class="text-center mt-lg font-label-sm text-label-sm text-outline uppercase tracking-widest">Version {{ appVersion }}</p>
                             </section>
                         </template>
                     </main>
@@ -2061,7 +3036,7 @@
 
                 function confirmLogout() { showLogoutConfirm.value = true; }
 
-                function doLogout() { window.location.href = '/logout'; }
+                function doLogout() { fetch('/api/method/logout',{method:'POST',headers:{'X-Frappe-CSRF-Token':SESSION.csrf}}).catch(function(){}).then(function(){ window.location.href='/install/app'; }); }
 
                 function triggerPhotoUpload() { photoInput.value?.click(); }
 
@@ -2081,7 +3056,8 @@
                 }
 
                 onMounted(loadProfile);
-                return { loading, profile, bank, bankForm, bankSaving, activeOverlay, showLogoutConfirm, passForm, passSaving, passError, passSuccess, notifSettings, navigatorUserAgent, primaryRole, photoInput, loadBank, saveBank, changePassword, confirmLogout, doLogout, triggerPhotoUpload, onPhotoFile };
+                const appVersion = "1.0 Beta";
+                return { loading, profile, bank, bankForm, bankSaving, activeOverlay, showLogoutConfirm, passForm, passSaving, passError, passSuccess, notifSettings, navigatorUserAgent, primaryRole, photoInput, loadBank, saveBank, changePassword, confirmLogout, doLogout, triggerPhotoUpload, onPhotoFile, appVersion };
             }
         };
 
@@ -2212,20 +3188,6 @@
                     <!-- Offline banner -->
                     <div v-if="!online" class="fixed top-0 left-0 w-full z-[100] bg-yellow-500 text-white text-center py-2 text-label-sm font-bold">Offline - limited features</div>
 
-                    <!-- Install prompt banner -->
-                    <div v-if="showInstallBanner && deferredInstallEvent" class="fixed bottom-20 left-4 right-4 z-[100] bg-surface-container-lowest rounded-2xl border border-outline-variant/20 shadow-xl p-4 flex items-center gap-3" :class="animClass('animate-fade-in-up')">
-                        <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                            <span class="material-symbols-outlined text-[28px]">install_mobile</span>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-label-md font-bold text-on-surface">Install Krystaa</p>
-                            <p class="text-label-sm text-outline">Add to your home screen for quick access</p>
-                        </div>
-                        <button @click="triggerInstall" class="px-4 py-2 rounded-full bg-primary text-white text-label-sm font-bold whitespace-nowrap active:scale-95 transition-all">Install</button>
-                        <button @click="showInstallBanner = false" class="p-2 rounded-full hover:bg-surface-container-low text-outline">
-                            <span class="material-symbols-outlined text-[20px]">close</span>
-                        </button>
-                    </div>
 
                     <!-- Header - hidden on dashboard for seamless experience -->
                     <header v-if="showHeader" class="fixed top-0 left-0 w-full z-50 bg-transparent flex justify-between items-center px-4 h-16" :class="animClass('animate-slide-down')">
@@ -2237,7 +3199,7 @@
                                 <span class="material-symbols-outlined">notifications</span>
                                 <span v-if="notifUnread > 0" class="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-error text-white text-[10px] font-bold rounded-full px-1">{{ notifUnread > 99 ? '99+' : notifUnread }}</span>
                             </button>
-                            <div class="flex items-center gap-2 bg-white/90 backdrop-blur-md pl-3 pr-1.5 py-1.5 rounded-full border border-outline-variant/20 soft-shadow">
+                            <div @click="$router.push('/profile')" class="flex items-center gap-2 bg-white/90 backdrop-blur-md pl-3 pr-1.5 py-1.5 rounded-full border border-outline-variant/20 soft-shadow cursor-pointer active:scale-95 transition-all">
                                 <span class="text-label-sm font-bold text-on-surface max-w-[80px] truncate">{{ userFullName }}</span>
                                 <div class="w-8 h-8 rounded-full overflow-hidden border border-primary/20 bg-primary flex items-center justify-center text-white text-label-sm font-bold">{{ userInitial }}</div>
                             </div>
@@ -2270,7 +3232,7 @@
                     <!-- Drawer -->
                     <div class="fixed top-0 left-0 bottom-0 w-[280px] bg-white z-[201] flex flex-col transition-transform duration-300" :class="drawerOpen ? 'translate-x-0' : '-translate-x-full'">
                         <div class="bg-primary text-white p-6 pb-4">
-                            <h2 class="text-headline-md font-bold">Krystaa</h2>
+                            <h2 class="text-headline-md font-bold">Krystaa Suite</h2>
                             <p class="text-label-sm text-white/80 mt-1">{{ userFullName }}</p>
                         </div>
                         <nav class="flex-1 overflow-y-auto py-2">
@@ -2361,22 +3323,6 @@
                     return map[n.document_type] || null;
                 }
 
-                // Install prompt — captured from beforeinstallprompt event
-                const showInstallBanner = ref(true);
-                const deferredInstallEvent = ref(null);
-                let onBeforeInstall = null;
-
-                function triggerInstall() {
-                    const event = deferredInstallEvent.value;
-                    if (!event) return;
-                    event.prompt();
-                    event.userChoice.then((choiceResult) => {
-                        deferredInstallEvent.value = null;
-                        showInstallBanner.value = false;
-                        if (choiceResult.outcome === 'accepted') toast('App installed!', 'success');
-                        else toast('Install cancelled', 'info');
-                    });
-                }
 
                 const showHeader = computed(() => router.currentRoute.value.path !== '/dashboard');
                 const showBottomNav = computed(() => router.currentRoute.value.meta?.bottomNav);
@@ -2395,7 +3341,6 @@
                     { path: "/attendance", label: "Attendance", icon: "schedule", show: true },
                     { path: "/hr-dashboard", label: "HR Dashboard", icon: "badge", show: isHR() },
                     { path: "/leaves", label: "Leaves", icon: "calendar_today", show: true },
-                    { path: "/expenses", label: "Expenses", icon: "receipt_long", show: true },
                     { path: "/rma", label: "RMA", icon: "build", show: isRMA() },
                     { path: "/dispatch", label: "Dispatch", icon: "local_shipping", show: isDispatch() },
                     { path: "/items", label: "Items", icon: "inventory_2", show: true },
@@ -2406,7 +3351,7 @@
                     { path: "/comms", label: "Comms", icon: "campaign", show: false },
                 ].filter(i => i.show).map(({show, ...rest}) => rest));
 
-                function logout() { api.post("/api/method/logout").then(() => { window.location.href = "/login"; }); }
+                function logout() { fetch('/api/method/logout',{method:'POST',headers:{'X-Frappe-CSRF-Token':SESSION.csrf}}).catch(function(){}).then(function(){ window.location.href='/install/app'; }); }
 
                 // Click outside to close notification dropdown
                 const notifDropdownRef = ref(null);
@@ -2419,17 +3364,42 @@
                     }
                 }
 
+                function urlBase64ToUint8Array(base64String) {
+                    var padding = '='.repeat((4 - base64String.length % 4) % 4);
+                    var base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+                    var rawData = window.atob(base64);
+                    var output = new Uint8Array(rawData.length);
+                    for (var i = 0; i < rawData.length; ++i) output[i] = rawData.charCodeAt(i);
+                    return output;
+                }
                 function updateOnline() { online.value = navigator.onLine; }
                 onMounted(() => {
-                    // Capture install prompt (handles both before and after mount)
-                    if (window._appState?.installPromptEvent) deferredInstallEvent.value = window._appState.installPromptEvent;
-                    onBeforeInstall = (e) => { e.preventDefault(); deferredInstallEvent.value = e; };
-                    window.addEventListener('beforeinstallprompt', onBeforeInstall);
 
                     window.addEventListener("online", updateOnline);
                     window.addEventListener("offline", updateOnline);
-                    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/assets/pwa_app/sw.js").catch(() => {});
+                    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/assets/pwa_app/sw.js?v=" + (SESSION.csrf || "1")).catch(() => {});
+                    // Push notification subscription
                     if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
+                    if ("Notification" in window && Notification.permission === "granted" && "serviceWorker" in navigator && "PushManager" in window) {
+                        navigator.serviceWorker.ready.then(async (reg) => {
+                            try {
+                                const existingSub = await reg.pushManager.getSubscription();
+                                if (existingSub) return;
+                                const pubKeyRes = await api.method('pwa_app.api.push_notification.get_vapid_public_key');
+                                const pubKey = pubKeyRes.message;
+                                if (!pubKey) return;
+                                const sub = await reg.pushManager.subscribe({
+                                    userVisibleOnly: true,
+                                    applicationServerKey: urlBase64ToUint8Array(pubKey)
+                                });
+                                await fetch('/api/method/pwa_app.api.push_notification.subscribe', {
+                                    method: 'POST', credentials: 'include',
+                                    headers: { 'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': SESSION.csrf },
+                                    body: JSON.stringify({ subscription: JSON.stringify(sub.toJSON()), device_name: navigator.userAgent })
+                                });
+                            } catch(e) { console.warn('Push sub failed:', e); }
+                        });
+                    }
                     if ("geolocation" in navigator) navigator.permissions.query({ name: 'geolocation' }).then(r => {
                         if (r.state === 'prompt') toast('Enable GPS for check-in', 'info', 5000);
                     });
@@ -2440,12 +3410,11 @@
                 onUnmounted(() => {
                     window.removeEventListener("online", updateOnline);
                     window.removeEventListener("offline", updateOnline);
-                    if (onBeforeInstall) window.removeEventListener('beforeinstallprompt', onBeforeInstall);
                     if (notifPollTimer) clearInterval(notifPollTimer);
                     document.removeEventListener('click', handleClickOutside);
                 });
 
-                return { drawerOpen, online, userFullName, userInitial, primaryRole, showHeader, showBottomNav, bottomTabs, isActive, navItems, logout, toasts, animClass, notifOpen, notifDropdownRef, notifications, notifUnread, fetchNotifications, markAllNotifRead, openNotif, showInstallBanner, deferredInstallEvent, triggerInstall };
+                return { drawerOpen, online, userFullName, userInitial, primaryRole, showHeader, showBottomNav, bottomTabs, isActive, navItems, logout, toasts, animClass, notifOpen, notifDropdownRef, notifications, notifUnread, fetchNotifications, markAllNotifRead, openNotif, };
             }
         };
 
@@ -2461,5 +3430,6 @@
         app.mount("#app");
         {% endraw %}
     </script>
+{% endif %}
 </body>
 </html>

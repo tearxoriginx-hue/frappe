@@ -5,9 +5,9 @@ DISPATCH_ROLES = ["Dispatch User", "Dispatch Operator", "Dispatch Manager", "Sys
 HR_ROLES = ["HR User", "HR Manager", "System Manager"]
 MANAGER_ROLES = ["RMA Manager", "Dispatch Manager", "HR Manager", "System Manager"]
 
-RMA_OPEN_STATUSES = ["Draft", "In Repair", "Pending Approval", "Approved for Replacement"]
-RMA_COMPLETED_STATUSES = ["Completed", "Replaced"]
-RMA_CLOSED_STATUSES = ["Completed", "Replaced", "Cancelled"]
+RMA_OPEN_STATUSES = ["Processing"]
+RMA_COMPLETED_STATUSES = ["Repaired", "Replaced"]
+RMA_CLOSED_STATUSES = ["Repaired", "Replaced", "Cancelled"]
 
 DISPATCH_PENDING_STATUSES = ["Pending", "In Queue"]
 EXPENSE_PENDING_STATUSES = ["Draft", "Submitted"]
@@ -50,16 +50,12 @@ def get_shortcuts(roles=None):
         pass
 
     defaults = [
-        {"label": "Attendance", "icon": "schedule", "icon_bg": "bg-blue-100", "icon_color": "text-blue-600", "route": "/attendance"},
-        {"label": "Leaves", "icon": "calendar_today", "icon_bg": "bg-orange-100", "icon_color": "text-orange-600", "route": "/leaves"},
-        {"label": "Expenses", "icon": "receipt_long", "icon_bg": "bg-blue-100", "icon_color": "text-blue-600", "route": "/expenses"},
-        {"label": "RMA", "icon": "build", "icon_bg": "bg-purple-100", "icon_color": "text-purple-600", "route": "/rma", "allowed_roles": RMA_ROLES},
-        {"label": "Dispatch", "icon": "local_shipping", "icon_bg": "bg-green-100", "icon_color": "text-green-600", "route": "/dispatch", "allowed_roles": DISPATCH_ROLES},
         {"label": "Mail", "icon": "mail", "icon_bg": "bg-red-100", "icon_color": "text-red-600", "route": "/mail"},
-        {"label": "Directory", "icon": "contacts", "icon_bg": "bg-green-100", "icon_color": "text-green-600", "route": "/directory"},
-        {"label": "Items", "icon": "inventory_2", "icon_bg": "bg-teal-100", "icon_color": "text-teal-600", "route": "/items"},
-        {"label": "Payslips", "icon": "payments", "icon_bg": "bg-teal-100", "icon_color": "text-teal-600", "route": "/salary", "allowed_roles": HR_ROLES},
+        {"label": "HR Dashboard", "icon": "badge", "icon_bg": "bg-blue-100", "icon_color": "text-blue-600", "route": "/hr-dashboard", "allowed_roles": HR_ROLES},
+        {"label": "Dispatch", "icon": "local_shipping", "icon_bg": "bg-green-100", "icon_color": "text-green-600", "route": "/dispatch", "allowed_roles": DISPATCH_ROLES},
+        {"label": "RMA", "icon": "build", "icon_bg": "bg-purple-100", "icon_color": "text-purple-600", "route": "/rma", "allowed_roles": RMA_ROLES},
         {"label": "Customers", "icon": "people", "icon_bg": "bg-indigo-100", "icon_color": "text-indigo-600", "route": "/customers"},
+        {"label": "Items", "icon": "inventory_2", "icon_bg": "bg-teal-100", "icon_color": "text-teal-600", "route": "/items"},
     ]
     visible = []
     for d in defaults:
@@ -74,6 +70,13 @@ def has_any_role(roles, role_list):
     return any(r in roles for r in role_list)
 
 
+def on_login(login_manager=None):
+    from frappe.desk.doctype.notification_settings.notification_settings import (
+        create_notification_settings,
+    )
+    create_notification_settings(login_manager.user)
+
+
 @frappe.whitelist(allow_guest=False)
 def get_app_config():
     try:
@@ -81,7 +84,7 @@ def get_app_config():
     except Exception:
         leave_types = ["Casual Leave", "Sick Leave", "Privilege Leave", "Leave Without Pay", "Compensatory Off"]
 
-    rma_status_options = ["Draft", "In Repair", "Completed", "Pending Approval", "Approved for Replacement", "Replaced", "Cancelled"]
+    rma_status_options = ["Processing", "Repaired", "Replaced", "Cancelled"]
     dispatch_status_options = ["Pending", "In Queue", "Processed", "Failed"]
 
     return {

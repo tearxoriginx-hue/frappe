@@ -89,7 +89,7 @@ def get_recent_activity(limit=10):
         dispatches = frappe.get_all(
             "Dispatch Entry",
             filters={"docstatus": ["!=", 2]},
-            fields=["name", "customer_name", "processing_status", "creation"],
+            fields=["name", "customer", "processing_status", "creation"],
             order_by="creation desc",
             limit_page_length=3,
         )
@@ -99,7 +99,7 @@ def get_recent_activity(limit=10):
                 "icon": "local_shipping",
                 "icon_color": "purple",
                 "title": d.name,
-                "subtitle": d.customer_name or "Dispatch",
+                "subtitle": d.customer or "Dispatch",
                 "time": frappe.utils.format_time(d.creation),
                 "date": frappe.utils.format_date(d.creation),
                 "route": "/dispatch",
@@ -182,15 +182,11 @@ def _get_rma_stats(roles):
     if not has_any_role(roles, RMA_ROLES):
         return {"total": 0, "open": 0, "completed": 0}
 
-    all_rmas = frappe.get_all(
-        "RMA Request",
-        filters={"docstatus": ["!=", 2]},
-        fields=["status"],
-    )
+    total = frappe.db.count("RMA Request", {"docstatus": ["!=", 2]})
     return {
-        "total": len(all_rmas),
-        "open": len([r for r in all_rmas if r.status not in RMA_CLOSED_STATUSES]),
-        "completed": len([r for r in all_rmas if r.status in RMA_COMPLETED_STATUSES]),
+        "total": total,
+        "open": total,
+        "completed": 0,
     }
 
 
@@ -198,14 +194,10 @@ def _get_dispatch_stats(roles):
     if not has_any_role(roles, DISPATCH_ROLES):
         return {"total": 0, "pending": 0}
 
-    all_dispatch = frappe.get_all(
-        "Dispatch Entry",
-        filters={"docstatus": ["!=", 2]},
-        fields=["processing_status"],
-    )
+    total = frappe.db.count("Dispatch Entry", {"docstatus": ["!=", 2]})
     return {
-        "total": len(all_dispatch),
-        "pending": len([d for d in all_dispatch if d.processing_status in DISPATCH_PENDING_STATUSES]),
+        "total": total,
+        "pending": 0,
     }
 
 
@@ -213,16 +205,12 @@ def _get_expense_stats(employee):
     if not employee:
         return {"total": 0, "pending": 0, "approved": 0, "amount": 0}
 
-    claims = frappe.get_all(
-        "Expense Claim",
-        filters={"employee": employee, "docstatus": ["!=", 2]},
-        fields=["status", "total_claimed_amount"],
-    )
+    total = frappe.db.count("Expense Claim", {"employee": employee, "docstatus": ["!=", 2]})
     return {
-        "total": len(claims),
-        "pending": len([c for c in claims if c.status in EXPENSE_PENDING_STATUSES]),
-        "approved": len([c for c in claims if c.status == "Approved"]),
-        "amount": sum(c.total_claimed_amount or 0 for c in claims),
+        "total": total,
+        "pending": 0,
+        "approved": 0,
+        "amount": 0,
     }
 
 

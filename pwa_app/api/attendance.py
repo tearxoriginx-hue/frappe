@@ -41,19 +41,56 @@ def get_attendance_status():
     }
 
 
+def _validate_attendance_type(employee, action="check-in", latitude=None, longitude=None):
+    att_type = frappe.db.get_value("Employee", employee, "attendance_type") or "Biometric"
+    if att_type == "Biometric":
+        return {"success": False, "message": f"Your attendance is managed via biometric device. PWA {action} is not available."}
+    if att_type in ("Geo-Location", "Both") and not (latitude and longitude):
+        return {"success": False, "message": "Location is required. Please enable GPS."}
+    return None
+
+
+def _do_checkin(employee, user, log_type, latitude, longitude, ip_address, user_agent, geofence_flag=None):
+    result = frappe.call(
+        "hrms2.hrms2.doctype.employee_checkin.employee_checkin.add_log_based_on_employee_field",
+        employee_field_value=user,
+        log_type=log_type,
+        device_id="PWA",
+        employee_fieldname="user_id",
+        latitude=latitude,
+        longitude=longitude,
+    )
+    if not result or not result.get("log_name"):
+        return {"success": False, "message": "Failed to create checkin log"}
+
+    checkin_name = result["log_name"]
+    updates = {}
+    if ip_address:
+        updates["checkin_ip_address"] = ip_address
+    if user_agent:
+        updates["checkin_user_agent"] = user_agent
+    if latitude and longitude:
+        updates["checkin_within_geofence"] = 1 if geofence_flag != "OUTSIDE_GEOFENCE" else 0
+    if updates:
+        try:
+            frappe.db.set_value("Employee Checkin", checkin_name, updates, update_modified=False)
+        except Exception:
+            pass
+
+    frappe.db.commit()
+    return {"success": True, "message": "Checked in successfully", "checkin_name": checkin_name}
+
+
 @frappe.whitelist(methods=["POST"])
 def check_in(latitude=None, longitude=None):
     user = frappe.session.user
     employee = _get_employee(user)
     if not employee:
-        frappe.throw(_("No employee record found for this user"))
+        return {"success": False, "message": "No employee record found for this user"}
 
-    att_type = frappe.db.get_value("Employee", employee, "attendance_type") or "Biometric"
-    if att_type == "Biometric":
-        frappe.throw(_("Your attendance is managed via biometric device. PWA check-in is not available."))
-
-    if att_type in ("Geo-Location", "Both") and not (latitude and longitude):
-        frappe.throw(_("Location is required for check-in. Please enable GPS."))
+    err = _validate_attendance_type(employee, "check-in", latitude, longitude)
+    if err:
+        return err
 
     today = frappe.utils.today()
     last_log = frappe.get_all(
@@ -64,7 +101,7 @@ def check_in(latitude=None, longitude=None):
         limit_page_length=1,
     )
     if last_log and last_log[0].log_type == "IN":
-        frappe.throw(_("Already checked in today"))
+        return {"success": False, "message": "Already checked in today"}
 
     geofence_flag = None
     if latitude and longitude:
@@ -74,37 +111,12 @@ def check_in(latitude=None, longitude=None):
     user_agent = frappe.local.request.headers.get("User-Agent") if hasattr(frappe.local, "request") else None
 
     try:
-        checkin_name = frappe.call(
-            "hrms.hr.doctype.employee_checkin.employee_checkin.add_log_based_on_employee_field",
-            employee_field_value=user,
-            log_type="IN",
-            device_id="PWA",
-            employee_fieldname="user_id",
-            latitude=latitude,
-            longitude=longitude,
-        )
-
-        if checkin_name:
-            frappe.db.set_value("Employee Checkin", checkin_name, {
-                "checkin_ip_address": ip_address,
-                "checkin_user_agent": user_agent,
-                "checkin_within_geofence": 1 if geofence_flag is None else 0,
-            }, update_modified=False)
-
-        frappe.db.commit()
-
-        extra = {}
+        result = _do_checkin(employee, user, "IN", latitude, longitude, ip_address, user_agent, geofence_flag)
         if geofence_flag == "OUTSIDE_GEOFENCE":
-            extra["warning"] = "You are outside the designated check-in area. Location has been flagged."
-
-        return {
-            "success": True,
-            "message": "Checked in successfully",
-            "checkin_name": checkin_name,
-            **extra,
-        }
+            result["warning"] = "You are outside the designated check-in area. Location has been flagged."
+        return result
     except Exception as e:
-        frappe.throw(str(e))
+        return {"success": False, "message": str(e)}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -112,7 +124,11 @@ def check_out(latitude=None, longitude=None):
     user = frappe.session.user
     employee = _get_employee(user)
     if not employee:
-        frappe.throw(_("No employee record found for this user"))
+        return {"success": False, "message": "No employee record found for this user"}
+
+    err = _validate_attendance_type(employee, "check-out", latitude, longitude)
+    if err:
+        return err
 
     today = frappe.utils.today()
     last_log = frappe.get_all(
@@ -123,32 +139,15 @@ def check_out(latitude=None, longitude=None):
         limit_page_length=1,
     )
     if not last_log or last_log[0].log_type == "OUT":
-        frappe.throw(_("Not currently checked in"))
+        return {"success": False, "message": "Not currently checked in"}
 
     ip_address = frappe.local.request_ip if hasattr(frappe.local, "request_ip") else None
     user_agent = frappe.local.request.headers.get("User-Agent") if hasattr(frappe.local, "request") else None
 
     try:
-        checkin_name = frappe.call(
-            "hrms.hr.doctype.employee_checkin.employee_checkin.add_log_based_on_employee_field",
-            employee_field_value=user,
-            log_type="OUT",
-            device_id="PWA",
-            employee_fieldname="user_id",
-            latitude=latitude,
-            longitude=longitude,
-        )
-
-        if checkin_name and (ip_address or user_agent):
-            updates = {}
-            if ip_address: updates["checkin_ip_address"] = ip_address
-            if user_agent: updates["checkin_user_agent"] = user_agent
-            frappe.db.set_value("Employee Checkin", checkin_name, updates, update_modified=False)
-
-        frappe.db.commit()
-        return {"success": True, "message": "Checked out successfully", "checkin_name": checkin_name}
+        return _do_checkin(employee, user, "OUT", latitude, longitude, ip_address, user_agent)
     except Exception as e:
-        frappe.throw(str(e))
+        return {"success": False, "message": str(e)}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -158,13 +157,20 @@ def upload_checkin_selfie(checkin_name):
     Expects multipart file upload with field name 'file'.
     """
     if not checkin_name:
-        frappe.throw(_("checkin_name is required"))
+        frappe.throw(frappe._("checkin_name is required"))
 
     if not frappe.db.exists("Employee Checkin", checkin_name):
-        frappe.throw(_("Checkin record not found"))
+        frappe.throw(frappe._("Checkin record not found"))
+
+    # Verify the checkin belongs to the current user's employee
+    user = frappe.session.user
+    employee = _get_employee(user)
+    checkin_employee = frappe.db.get_value("Employee Checkin", checkin_name, "employee")
+    if checkin_employee != employee:
+        frappe.throw(frappe._("Permission denied"))
 
     if "file" not in frappe.request.files:
-        frappe.throw(_("No file uploaded. Send file with field name 'file'."))
+        frappe.throw(frappe._("No file uploaded. Send file with field name 'file'."))
 
     file_doc = frappe.get_doc({
         "doctype": "File",
@@ -176,7 +182,10 @@ def upload_checkin_selfie(checkin_name):
     })
     file_doc.save(ignore_permissions=True)
 
-    frappe.db.set_value("Employee Checkin", checkin_name, "checkin_selfie", file_doc.file_url, update_modified=False)
+    try:
+        frappe.db.set_value("Employee Checkin", checkin_name, "checkin_selfie", file_doc.file_url, update_modified=False)
+    except Exception:
+        pass
     frappe.db.commit()
 
     return {"success": True, "file_url": file_doc.file_url}
@@ -187,7 +196,7 @@ def get_requests():
     user = frappe.session.user
     employee = _get_employee(user)
     roles = frappe.get_roles()
-    is_hr = bool(set(roles) & {"HR User", "HR Manager", "System Manager"})
+    is_hr = bool(set(roles) & {"HR Manager", "System Manager"})
 
     my_requests = []
     team_requests = []
@@ -284,9 +293,9 @@ def get_weekly_summary():
 def approve_request(doctype, name):
     user = frappe.session.user
     roles = frappe.get_roles()
-    is_hr = bool(set(roles) & {"HR User", "HR Manager", "System Manager"})
+    is_hr = bool(set(roles) & {"HR Manager", "System Manager"})
     if not is_hr:
-        frappe.throw(_("Only HR users can approve requests"))
+        frappe.throw(frappe._("Only HR users can approve requests"))
 
     doc = frappe.get_doc(doctype, name)
     if doctype == "Leave Application":
@@ -298,7 +307,7 @@ def approve_request(doctype, name):
     elif doctype == "Employee Advance":
         doc.submit()
     else:
-        frappe.throw(_("Unsupported doctype"))
+        frappe.throw(frappe._("Unsupported doctype"))
 
     frappe.db.commit()
     return {"success": True, "message": f"{doctype} approved"}
@@ -308,9 +317,9 @@ def approve_request(doctype, name):
 def reject_request(doctype, name, reason=None):
     user = frappe.session.user
     roles = frappe.get_roles()
-    is_hr = bool(set(roles) & {"HR User", "HR Manager", "System Manager"})
+    is_hr = bool(set(roles) & {"HR Manager", "System Manager"})
     if not is_hr:
-        frappe.throw(_("Only HR users can reject requests"))
+        frappe.throw(frappe._("Only HR users can reject requests"))
 
     doc = frappe.get_doc(doctype, name)
     if doctype == "Leave Application":
@@ -322,7 +331,7 @@ def reject_request(doctype, name, reason=None):
     elif doctype == "Employee Advance":
         doc.cancel()
     else:
-        frappe.throw(_("Unsupported doctype"))
+        frappe.throw(frappe._("Unsupported doctype"))
 
     frappe.db.commit()
     return {"success": True, "message": f"{doctype} rejected"}

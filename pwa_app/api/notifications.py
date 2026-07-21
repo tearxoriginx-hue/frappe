@@ -1,4 +1,24 @@
 import frappe
+from frappe.utils import now_datetime
+
+
+def _time_ago(dt):
+    """Calculate time ago in human-readable format, safe replacement for deprecated frappe.utils.time_ago."""
+    diff = now_datetime() - dt
+    days = diff.days
+    seconds = diff.seconds
+    if days > 30:
+        months = days // 30
+        return f"{months}mo ago"
+    if days > 0:
+        return f"{days}d ago"
+    hours = seconds // 3600
+    if hours > 0:
+        return f"{hours}h ago"
+    minutes = seconds // 60
+    if minutes > 0:
+        return f"{minutes}m ago"
+    return "just now"
 
 
 @frappe.whitelist()
@@ -18,7 +38,7 @@ def get_notifications():
             "subject": n.subject,
             "type": n.type,
             "creation": str(n.creation),
-            "time_ago": frappe.utils.time_ago(n.creation),
+            "time_ago": _time_ago(n.creation),
             "document_type": n.document_type,
             "document_name": n.document_name,
             "read": n.read,

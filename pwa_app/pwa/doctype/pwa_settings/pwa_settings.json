@@ -7,13 +7,17 @@
  "field_order": [
   "shortcuts_section",
   "shortcuts",
-   "settings_section",
-   "enable_push_notifications",
-   "enable_offline_mode",
-   "dashboard_hero_text",
-   "biometric_section",
-   "biometric_secret",
-   "amended_from"
+  "settings_section",
+  "enable_push_notifications",
+  "enable_offline_mode",
+  "dashboard_hero_text",
+  "biometric_section",
+  "biometric_secret",
+  "amended_from",
+  "vapid_keys_section",
+  "vapid_public_key",
+  "vapid_private_key",
+  "generate_vapid_keys"
  ],
  "fields": [
   {
@@ -44,26 +48,48 @@
    "fieldtype": "Check",
    "label": "Enable Offline Mode"
   },
-   {
-    "default": "Welcome to Krystaa",
-    "fieldname": "dashboard_hero_text",
-    "fieldtype": "Data",
-    "label": "Dashboard Hero Text"
-   },
-   {
-    "collapsible": 1,
-    "fieldname": "biometric_section",
-    "fieldtype": "Section Break",
-    "label": "Biometric Integration"
-   },
-   {
-    "description": "Shared secret key that biometric devices must send to authenticate",
-    "fieldname": "biometric_secret",
-    "fieldtype": "Password",
-    "label": "Biometric API Secret"
-   },
-   {
-    "fieldname": "amended_from",
+  {
+   "default": "Welcome to Krystaa",
+   "fieldname": "dashboard_hero_text",
+   "fieldtype": "Data",
+   "label": "Dashboard Hero Text"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "biometric_section",
+   "fieldtype": "Section Break",
+   "label": "Biometric Integration"
+  },
+  {
+   "description": "Shared secret key that biometric devices must send to authenticate",
+   "fieldname": "biometric_secret",
+   "fieldtype": "Password",
+   "label": "Biometric API Secret"
+  },
+  {
+   "fieldname": "vapid_keys_section",
+   "fieldtype": "Section Break",
+   "label": "Web Push (VAPID) Keys"
+  },
+  {
+   "fieldname": "vapid_public_key",
+   "fieldtype": "Text",
+   "label": "VAPID Public Key",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vapid_private_key",
+   "fieldtype": "Password",
+   "label": "VAPID Private Key",
+   "read_only": 1
+  },
+  {
+   "fieldname": "generate_vapid_keys",
+   "fieldtype": "Button",
+   "label": "Generate VAPID Keys"
+  },
+  {
+   "fieldname": "amended_from",
    "fieldtype": "Link",
    "label": "Amended From",
    "no_copy": 1,

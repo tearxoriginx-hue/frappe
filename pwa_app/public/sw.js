@@ -6,7 +6,7 @@ const API_CACHE = `pwa-api-v${VER}`;
 
 const PRECACHE_URLS = [
     '/install/app',
-    '/assets/pwa_app/manifest.json',
+    '/install/manifest',
 ];
 
 self.addEventListener('install', (event) => {

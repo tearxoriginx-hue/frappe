@@ -12,6 +12,10 @@ hide_in_menu = True
 # Website route rules
 website_route_rules = [
     {
+        "from_route": "/install/manifest.json",
+        "to_route": "install/manifest",
+    },
+    {
         "from_route": "/install/app/<path:app_path>",
         "to_route": "install/app",
     },
@@ -25,6 +29,19 @@ website_route_rules = [
 jinja = {
     "methods": [],
 }
+
+# Document hooks - auto push notification on Notification Log creation
+doc_events = {
+    "Notification Log": {
+        "on_update": "pwa_app.api.push_notification.notify_on_notification_log"
+    },
+    "Communication": {
+        "after_insert": "pwa_app.api.push_notification.notify_on_incoming_email"
+    }
+}
+
+# Auto-create Notification Settings on login (fixes Desk error for new users)
+on_login = ["pwa_app.api.utils.on_login"]
 
 # Scheduler events
 scheduler_events = {

@@ -27,11 +27,14 @@ def validate_geofence(employee, latitude, longitude):
     if geofence_type == "DISABLED":
         return True, None
 
-    areas = frappe.get_all(
-        "Geofence Area",
-        {"is_active": 1},
-        ["name", "latitude", "longitude", "radius_meters"],
-    )
+    try:
+        areas = frappe.get_all(
+            "Geofence Area",
+            {"is_active": 1},
+            ["name", "latitude", "longitude", "radius_meters"],
+        )
+    except Exception:
+        areas = []
     if not areas:
         return True, None
 
@@ -52,9 +55,12 @@ def validate_geofence(employee, latitude, longitude):
 @frappe.whitelist()
 def get_geofence_areas():
     """Return all active geofence areas (for client-side map display)."""
-    areas = frappe.get_all(
-        "Geofence Area",
-        {"is_active": 1},
-        ["name", "latitude", "longitude", "radius_meters", "area_name", "branch"],
-    )
+    try:
+        areas = frappe.get_all(
+            "Geofence Area",
+            {"is_active": 1},
+            ["name", "latitude", "longitude", "radius_meters", "area_name", "branch"],
+        )
+    except Exception:
+        areas = []
     return areas

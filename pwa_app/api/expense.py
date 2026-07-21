@@ -13,6 +13,8 @@ def create_expense(expense_type, amount, expense_date, description=None, file_da
     if not employee:
         frappe.throw(_("No employee record found for this user"))
 
+    frappe.has_permission("Expense Claim", "create", throw=True)
+
     claim = frappe.get_doc({
         "doctype": "Expense Claim",
         "employee": employee,
