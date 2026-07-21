@@ -139,13 +139,12 @@ doctype_js = {
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"Dispatch Entry": {
+		"after_insert": "dispatched.api.notifications.notify_on_create",
+		"on_update": "dispatched.api.notifications.notify_on_update",
+	},
+}
 
 # Scheduled Tasks
 # ---------------

@@ -1,25 +1,440 @@
 // Copyright (c) 2026, Varun and contributors
 // For license information, please see license.txt
 
+// ===============================================================
+// Helper functions — defined FIRST so they exist when form loads
+// ===============================================================
+
+function _lock_readonly_fields(frm) {
+    ["posting_date", "posting_time", "total_qty", "processing_status"].forEach(
+        (f) => frm.set_df_property(f, "read_only", 1)
+    );
+}
+
+function _calculate_expiry(frm, cdt, cdn) {
+    const row = locals[cdt][cdn];
+    const posting_date = frm.doc.posting_date || frappe.datetime.get_today();
+    if (!row.warranty_period_days) return;
+    const expiry = frappe.datetime.add_days(posting_date, row.warranty_period_days);
+    frappe.model.set_value(cdt, cdn, "expiry_date", expiry);
+}
+
+function _refresh_totals(frm) {
+    let total = 0;
+    (frm.doc.products || []).forEach((row) => {
+        let row_qty = _parse_serials(row.serial_nos || "").length;
+        if (row.qty !== row_qty) {
+            frappe.model.set_value(row.doctype, row.name, "qty", row_qty);
+        }
+        total += row_qty;
+    });
+    frm.set_value("total_qty", total);
+}
+
+function _parse_serials(text) {
+    if (!text) return [];
+    const seen = new Set();
+    return text
+        .split("\n")
+        .map((s) => s.trim())
+        .filter((s) => s && !seen.has(s.toUpperCase()) && seen.add(s.toUpperCase()));
+}
+
+function _render_serial_cells(frm) {
+    if (!frm.doc.products || !frm.fields_dict || !frm.fields_dict.products) return;
+    const grid = frm.fields_dict.products.grid;
+    frm.doc.products.forEach((row) => {
+        if (!row.serial_nos) return;
+        const grid_row = grid.grid_rows.find(r => r.doc && r.doc.name === row.name);
+        if (!grid_row) return;
+        const serials = _parse_serials(row.serial_nos);
+        if (serials.length === 0) return;
+        const $cell = $(grid_row.wrapper).find("[data-fieldname=serial_nos]");
+        if (!$cell.length) return;
+        let html = "<div style=\"display: flex; flex-wrap: wrap; gap: 3px; max-height: 150px; overflow-y: auto; cursor: pointer;\">";
+        serials.forEach((sn) => {
+            html += "<span class=\"badge badge-info\" style=\"font-size: 10px; padding: 1px 5px; pointer-events: none;\">" + sn + "</span>";
+        });
+        html += "</div>";
+        try {
+            if ($cell.html().trim() !== html.trim()) {
+                $cell.html(html);
+            }
+        } catch(e) {}
+    });
+}
+
+function _play_audio_tone(type) {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        if (type === "success") {
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(600, ctx.currentTime);
+            osc.frequency.setValueAtTime(900, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        } else if (type === "error") {
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+    } catch (e) {}
+}
+
+function _detect_merged_serial(new_sn) {
+    // Check 1: Extremely long string = definitely merged
+    if (new_sn.length > 40) {
+        return "⚠️ Serial number too long (" + new_sn.length + " chars) — possible merged scan?";
+    }
+    // Check 2: Multiple groups matching typical serial pattern (e.g., SN001, ABC123)
+    // Looks for letter-prefix + number combo, repeated
+    const groups = new_sn.match(/[A-Z]{2,}\d+/g);
+    if (groups && groups.length > 1) {
+        return "⚠️ Possible merged scan: detected " + groups.join(", ");
+    }
+    // Check 3: Multiple alphanumeric clusters (handles mixed formats like ABC-123-XYZ)
+    const clusters = new_sn.match(/[A-Z0-9]{3,}/g);
+    if (clusters && clusters.length > 2) {
+        return "⚠️ Possible merged scan with " + clusters.length + " clusters";
+    }
+    // Check 4: Has separator patterns that suggest multiple items
+    if ((new_sn.match(/[\-\/\|,;]/g) || []).length > 1) {
+        return "⚠️ Multiple separators found — possible merged list?";
+    }
+    return null;
+}
+
+function _show_processing_banner(frm) {
+    const status = frm.doc.processing_status || "Pending";
+    const msgs = {
+        "Pending": "⏳ Waiting to be queued for background processing\u2026",
+        "In Queue": "⚙️ Processing serials in background \u2014 this page refreshes every 5 seconds automatically.",
+        "Processed": "✅ Done! All " + frm.doc.total_qty + " serial numbers have been registered/updated in the system.",
+        "Failed": "❌ Processing failed \u2014 click \"Retry Processing\" to try again, or check <b>Error Log</b> for details.",
+    };
+    const colors = { "Pending": "yellow", "In Queue": "yellow", "Processed": "green", "Failed": "red" };
+    frm.dashboard.add_comment(msgs[status], colors[status] || "yellow", true);
+}
+
+function _setup_serial_click_handler(frm) {
+    if (frm.fields_dict.products && frm.fields_dict.products.grid) {
+        var $grid = $(frm.fields_dict.products.grid.wrapper);
+        $grid.off("click.dispatch", "[data-fieldname=serial_nos]");
+        $grid.on("click.dispatch", "[data-fieldname=serial_nos]", function(e) {
+            if (frm.doc.docstatus !== 0) return;
+            var $row = $(this).closest(".grid-row");
+            var row_name = $row.attr("data-name");
+            var row = (frm.doc.products || []).find(r => r.name === row_name);
+            if (row) {
+                e.stopPropagation();
+                _open_serial_dialog(frm, row.name, row.item_code);
+            }
+        });
+    }
+}
+
+function _open_serial_dialog(frm, row_name, item_code) {
+    // Guard: reuse if already open for same row
+    if (frm._serial_dlg && frm._serial_dlg.row_name === row_name) {
+        frm._serial_dlg.dialog.show();
+        return;
+    }
+    if (frm._serial_dlg) {
+        frm._serial_dlg.dialog.hide();
+    }
+
+    const row = frappe.model.get_doc("Dispatch Product", row_name);
+    const existing = _parse_serials(row.serial_nos || "");
+    // serials is the SINGLE source of truth
+    const serials = [...existing];
+
+    const d = new frappe.ui.Dialog({
+        title: "Scan Serial Numbers",
+        fields: [
+            {
+                fieldtype: "Data",
+                fieldname: "scan_input",
+                label: "Item: " + item_code,
+                description: "Scan or type a serial number, then press Enter"
+            },
+            {
+                fieldtype: "HTML",
+                fieldname: "badge_list"
+            },
+        ],
+        primary_action_label: "Save & Close",
+        primary_action: () => {
+            frm._serial_dlg = null;
+            _render_serial_cells(frm);
+            _refresh_totals(frm);
+            d.hide();
+        },
+    });
+
+    frm._serial_dlg = { dialog: d, row_name: row_name };
+    d.onhide = function() {
+        frm._serial_dlg = null;
+    };
+
+    d.show();
+
+    // Real-time badge renderer inside the dialog
+    function _render_dlg_badges() {
+        let html = "<div style=\"display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; max-height: 200px; overflow-y: auto;\">";
+        serials.forEach((sn, idx) => {
+            html += "<span class=\"badge badge-info\" style=\"padding: 4px 8px; font-size: 12px; margin: 2px;\">"
+                + sn
+                + " <a class=\"sn-remove\" data-idx=\"" + idx + "\" style=\"margin-left: 6px; cursor: pointer; font-weight: bold; color: #fff; opacity: 0.7; text-decoration: none;\">&times;</a>"
+                + "</span>";
+        });
+        html += "</div>";
+        d.fields_dict.badge_list.$wrapper.html(html);
+
+        // Bind remove handlers
+        d.$wrapper.find(".sn-remove").on("click", function() {
+            const idx = parseInt($(this).data("idx"));
+            serials.splice(idx, 1);
+            _render_dlg_badges();
+            _play_audio_tone("success");
+            // Update child table in real-time
+            frappe.model.set_value("Dispatch Product", row_name, "serial_nos", serials.join("\n"));
+            _render_serial_cells(frm);
+            _refresh_totals(frm);
+        });
+    }
+
+    // ============================================================
+    // Smart Matrix: Validate serial batch for anomalies
+    // ============================================================
+    function _validate_serial_matrix() {
+        if (serials.length < 2) return;
+        const warnings = [];
+
+        // --- Check 1: Length consistency ---
+        const lengthCounts = {};
+        serials.forEach(s => {
+            const len = s.length;
+            lengthCounts[len] = (lengthCounts[len] || 0) + 1;
+        });
+        const mostCommonLen = Object.keys(lengthCounts).reduce(
+            (a, b) => lengthCounts[a] > lengthCounts[b] ? a : b
+        );
+        const unusual = serials.filter(s => s.length !== parseInt(mostCommonLen));
+        if (unusual.length > 0 && unusual.length < serials.length / 2) {
+            const showUnusual = unusual.slice(0, 5).join(", ");
+            const extra = unusual.length > 5 ? "...and " + (unusual.length - 5) + " more" : "";
+            warnings.push("⚠️ " + unusual.length + " serial(s) have unusual length (expected " + mostCommonLen + " chars): " + showUnusual + extra);
+        }
+
+        // --- Check 2: Prefix pattern detection ---
+        const prefixes = {};
+        serials.forEach(s => {
+            const match = s.match(/^([A-Z]+)/);
+            if (match) {
+                const prefix = match[1];
+                prefixes[prefix] = (prefixes[prefix] || 0) + 1;
+            }
+        });
+        const prefixKeys = Object.keys(prefixes);
+        if (prefixKeys.length > 1) {
+            const mainPrefix = prefixKeys.reduce((a, b) => prefixes[a] > prefixes[b] ? a : b);
+            const outliers = prefixKeys.filter(p => p !== mainPrefix);
+            warnings.push("⚠️ Multiple prefixes detected: " + outliers.join(", ") + " (majority: " + mainPrefix + ")");
+        }
+
+        // --- Check 3: Duplicate-ish detection (skip for large batches) ---
+        if (serials.length <= 200) {
+            for (let i = 0; i < serials.length; i++) {
+                for (let j = i + 1; j < serials.length; j++) {
+                    const s1 = serials[i], s2 = serials[j];
+                    if (s1.length > 3 && s2.length > 3) {
+                        if (s1.includes(s2) || s2.includes(s1)) {
+                            warnings.push("⚠️ Possible duplicate/mis-scan: " + s1 + " contains/in " + s2);
+                            break;
+                        }
+                    }
+                }
+                if (warnings.length > 3) break;
+            }
+        } else {
+            warnings.push("ℹ️ Batch too large (" + serials.length + ") — skipping duplicate-ish check");
+        }
+
+        // --- Check 4: Sequential gap detection ---
+        const numberedSerials = serials
+            .map(s => {
+                const match = s.match(/^(.*[A-Za-z])(\d+)$/);
+                return match ? { prefix: match[1].toUpperCase(), num: parseInt(match[2]) } : null;
+            })
+            .filter(x => x !== null);
+        const groups = {};
+        numberedSerials.forEach(x => {
+            if (!groups[x.prefix]) groups[x.prefix] = [];
+            groups[x.prefix].push(x.num);
+        });
+        for (const [prefix, nums] of Object.entries(groups)) {
+            if (nums.length < 3) continue;
+            nums.sort((a, b) => a - b);
+            for (let i = 1; i < nums.length; i++) {
+                if (nums[i] - nums[i-1] > 1) {
+                    for (let missing = nums[i-1] + 1; missing < nums[i]; missing++) {
+                        warnings.push("⚠️ Possible gap: " + prefix + missing + " is missing");
+                        if (warnings.length >= 6) break;
+                    }
+                }
+                if (warnings.length >= 6) break;
+            }
+            if (warnings.length >= 6) break;
+        }
+
+        // Show warnings if any
+        if (warnings.length > 0) {
+            const display = warnings.slice(0, 4);
+            if (warnings.length > 4) {
+                display.push("...and " + (warnings.length - 4) + " more warnings");
+            }
+            frappe.show_alert({
+                message: "<b>Serial Validation:</b><br>" + display.join("<br>"),
+                indicator: "orange"
+            });
+        }
+    }
+
+    // Find the scan input field
+    const $input = d.$wrapper.find("[data-fieldname=scan_input] input");
+
+    // Shared handler for both Enter and paste
+    function _add_serials_from_text(text) {
+        const parts = text.split(/[\n,;\t| ]+/).filter(s => s.trim());
+        let added = 0;
+        let last_added = "";
+
+        for (const part of parts) {
+            const sn = part.trim().toUpperCase();
+            if (!sn) continue;
+            if (serials.includes(sn)) {
+                frappe.show_alert({ message: "Already added: " + sn, indicator: "orange" });
+                _play_audio_tone("error");
+                continue;
+            }
+            const warning = _detect_merged_serial(sn);
+            if (warning) {
+                frappe.show_alert({ message: warning, indicator: "orange" });
+                _play_audio_tone("error");
+                continue;
+            }
+            serials.push(sn);
+            added++;
+            last_added = sn;
+        }
+
+        if (added > 0) {
+            _render_dlg_badges();
+            _play_audio_tone("success");
+            // Update child table in REAL TIME
+            frappe.model.set_value("Dispatch Product", row_name, "serial_nos", serials.join("\n"));
+            _render_serial_cells(frm);
+            _refresh_totals(frm);
+        }
+        // Run smart matrix validation after batch
+        if (added > 0) {
+            _validate_serial_matrix();
+        } else if (serials.length > 0) {
+            // Re-validate even if nothing new added (clears stale warnings)
+            _validate_serial_matrix();
+        }
+        return added;
+    }
+
+    // Enter key = single scan/type (also handle Tab for scanners configured with tab suffix)
+    $input.on("keydown", function(e) {
+        if (e.key === "Enter" || e.key === "Tab") {
+            if (e.key === "Tab") e.preventDefault();
+            const text = $(this).val();
+            if (_add_serials_from_text(text) > 0) {
+                $(this).val("");
+            } else {
+                $(this).val("");
+            }
+        }
+    });
+
+    // Paste = handle batch (split by newline)
+    $input.on("paste", function() {
+        setTimeout(() => {
+            const text = $(this).val();
+            if (_add_serials_from_text(text) > 0) {
+                $(this).val("");
+            }
+        }, 0);
+    });
+
+    // Input event — detect trailing space/tab (barcode scanner with space suffix)
+    $input.on("input", function() {
+        const val = $(this).val();
+        if (val.endsWith(" ") || val.endsWith("\t")) {
+            _add_serials_from_text(val.trim());
+            $(this).val("");
+        }
+    });
+
+    // Initial render of existing badges
+    _render_dlg_badges();
+    // Validate existing serials on dialog open
+    _validate_serial_matrix();
+}
+
+// ===============================================================
+// Form events
+// ===============================================================
+
 frappe.ui.form.on("Dispatch Entry", {
 
     refresh(frm) {
         _lock_readonly_fields(frm);
 
-        // Auto-fill branch from the logged-in user's Employee record
         if (frm.is_new() && !frm.doc.branch) {
-            frappe.db.get_value("Employee", { user_id: frappe.session.user }, "branch", (r) => {
-                if (r && r.branch) {
-                    frm.set_value("branch", r.branch);
-                }
+            frappe.call({
+                method: "dispatched.dispatch_module.doctype.dispatch_entry.dispatch_entry.get_user_branch",
+                callback: (r) => {
+                    if (r.message && r.message.branch) {
+                        frm.set_value("branch", r.message.branch);
+                        frm.set_df_property("branch", "read_only", 1);
+                    }
+                },
             });
+        } else if (frm.doc.branch) {
+            frm.set_df_property("branch", "read_only", 1);
         }
 
-        // Replace serial_nos cell text with clickable badges
+        if (frm.is_new() && !frm.doc.company) {
+            frappe.call({
+                method: "dispatched.dispatch_module.doctype.dispatch_entry.dispatch_entry.get_user_company",
+                callback: (r) => {
+                    if (r.message && r.message.company) {
+                        frm.set_value("company", r.message.company);
+                        frm.set_df_property("company", "read_only", 1);
+                    }
+                },
+            });
+        } else if (frm.doc.company) {
+            frm.set_df_property("company", "read_only", 1);
+        }
+
+        _setup_serial_click_handler(frm);
         _render_serial_cells(frm);
 
-        // Processing status banner + auto-refresh on submitted docs
-        if (frm.doc.docstatus === 1) {
+        if (!frm.is_new()) {
             _show_processing_banner(frm);
             if (["In Queue", "Pending"].includes(frm.doc.processing_status)) {
                 clearInterval(frm._refresh_interval);
@@ -29,8 +444,7 @@ frappe.ui.form.on("Dispatch Entry", {
             }
         }
 
-        // On failure — add a "Retry" button
-        if (frm.doc.docstatus === 1 && frm.doc.processing_status === "Failed") {
+        if (!frm.is_new() && frm.doc.processing_status === "Failed") {
             frm.add_custom_button(__("Retry Processing"), () => {
                 frappe.call({
                     method: "dispatched.dispatch_module.doctype.dispatch_entry.dispatch_entry.retry_processing",
@@ -55,27 +469,33 @@ frappe.ui.form.on("Dispatch Entry", {
 frappe.ui.form.on("Dispatch Product", {
     item_code(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
-        if (!row.item_code) return;
+        if (!row.item_code) {
+            row._last_item_code = null;
+            return;
+        }
 
-        frappe.db.get_value("Item", row.item_code, ["warranty_period", "item_name"], (r) => {
-            frappe.model.set_value(cdt, cdn, "warranty_period_days", r.warranty_period || 0);
+        if (row._last_item_code === row.item_code) return;
+        row._last_item_code = row.item_code;
+
+        frappe.db.get_value("Item", row.item_code, ["warranty_period_days", "item_name"], (r) => {
+            frappe.model.set_value(cdt, cdn, "warranty_period_days", r.warranty_period_days || 0);
             frappe.model.set_value(cdt, cdn, "item_name", r.item_name || "");
             _calculate_expiry(frm, cdt, cdn);
 
-            // Auto-open scan dialog to save clicks
-            if (frm.doc.docstatus === 0) {
+            if (frm.doc.docstatus === 0 && frm._dlg_scheduled !== row.name) {
+                frm._dlg_scheduled = row.name;
                 setTimeout(() => {
+                    frm._dlg_scheduled = null;
                     _open_serial_dialog(frm, row.name, row.item_code);
                 }, 100);
             }
         });
     },
 
-    // When user clicks the serial_nos cell directly, open the scan dialog
     serial_nos(frm, cdt, cdn) {
-        const row = locals[cdt][cdn];
-        if (frm.doc.docstatus !== 0) return;  // only on draft
-        _open_serial_dialog(frm, row.name, row.item_code);
+        if (frm.doc.docstatus !== 0) return;
+        _render_serial_cells(frm);
+        _refresh_totals(frm);
     },
 
     products_add(frm, cdt, cdn) {
@@ -86,396 +506,3 @@ frappe.ui.form.on("Dispatch Product", {
         _refresh_totals(frm);
     },
 });
-
-// ---------------------------------------------------------------
-// Private helpers
-// ---------------------------------------------------------------
-
-function _lock_readonly_fields(frm) {
-    ["posting_date", "posting_time", "total_qty", "processing_status"].forEach(
-        (f) => frm.set_df_property(f, "read_only", 1)
-    );
-}
-
-
-function _calculate_expiry(frm, cdt, cdn) {
-    const row = locals[cdt][cdn];
-    const posting_date = frm.doc.posting_date || frappe.datetime.get_today();
-    if (!row.warranty_period_days) return;
-
-    const expiry = frappe.datetime.add_days(posting_date, row.warranty_period_days);
-    frappe.model.set_value(cdt, cdn, "expiry_date", expiry);
-}
-
-function _refresh_totals(frm) {
-    let total = 0;
-    (frm.doc.products || []).forEach((row) => {
-        total += _parse_serials(row.serial_nos || "").length;
-    });
-    frm.set_value("total_qty", total);
-}
-
-function _parse_serials(text) {
-    if (!text) return [];
-    const seen = new Set();
-    return text
-        .split("\n")
-        .map((s) => s.trim())
-        .filter((s) => s && !seen.has(s.toUpperCase()) && seen.add(s.toUpperCase()));
-}
-
-// ---------------------------------------------------------------
-// Hardware Scanning Smart Validation Helpers
-// ---------------------------------------------------------------
-
-function _play_audio_tone(type) {
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        if (type === "success") {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(600, ctx.currentTime);
-            osc.frequency.setValueAtTime(900, ctx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.1, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.2);
-        } else if (type === "error") {
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(150, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.3);
-        }
-    } catch (e) {
-        // AudioContext not supported or disabled
-    }
-}
-
-function _detect_merged_serial(new_sn, existing_serials) {
-    // 1. Hard length warning
-    if (new_sn.length > 40) return "Scan is unusually long. Multiple barcodes?";
-    if (!existing_serials || existing_serials.length === 0) return null;
-
-    // 2. Length Anomaly Detection vs previous scans
-    const lengths = existing_serials.map(s => s.length);
-    const counts = {};
-    let most_common_length = lengths[0];
-    let max_count = 0;
-    for (const len of lengths) {
-        counts[len] = (counts[len] || 0) + 1;
-        if (counts[len] > max_count) {
-            max_count = counts[len];
-            most_common_length = len;
-        }
-    }
-
-    // If new serial is 1.7x or more the size of the normal one, flag it
-    if (new_sn.length >= most_common_length * 1.7 && most_common_length > 3) {
-        return `Length is ${new_sn.length} chars, but previous serials are ~${most_common_length} chars.`;
-    }
-
-    // 3. Prefix Repetition (e.g., SN1234SN5678)
-    const last_sn = existing_serials[existing_serials.length - 1];
-    const prefixMatch = last_sn.match(/^([A-Za-z]{2,5}[-_:]?)/);
-    if (prefixMatch) {
-        const prefix = prefixMatch[1];
-        const splitCount = new_sn.toUpperCase().split(prefix.toUpperCase()).length - 1;
-        if (splitCount > 1) {
-            return `Detected prefix "${prefix}" multiple times.`;
-        }
-    }
-
-    return null; // All good
-}
-
-// ---------------------------------------------------------------
-// Render clickable badges inside the "Serial Numbers" grid column
-// ---------------------------------------------------------------
-
-function _render_serial_cells(frm) {
-    const grid = frm.fields_dict.products && frm.fields_dict.products.grid;
-    if (!grid) return;
-
-    setTimeout(() => {
-        (frm.doc.products || []).forEach((row, idx) => {
-            const $gridRow = $(grid.wrapper).find(`.rows .row-index[data-idx="${idx + 1}"]`).closest('.grid-row');
-            if (!$gridRow.length) return;
-
-            // Find the serial_nos cell (look for the column with field "serial_nos")
-            const $cell = $gridRow.find('[data-fieldname="serial_nos"]');
-            if (!$cell.length) return;
-
-            const count = _parse_serials(row.serial_nos || "").length;
-            const isDraft = frm.doc.docstatus === 0;
-
-            if (isDraft) {
-                $cell.html(`
-					<div class="dispatch-serial-badge" style="
-						cursor:pointer;
-						display:inline-flex;
-						align-items:center;
-						gap:6px;
-						padding:4px 12px;
-						background:${count > 0 ? '#eef2ff' : '#f9fafb'};
-						border:1px solid ${count > 0 ? '#818cf8' : '#d1d5db'};
-						border-radius:20px;
-						font-size:12px;
-						font-weight:600;
-						color:${count > 0 ? '#4338ca' : '#6b7280'};
-						white-space:nowrap;
-					">
-						${count > 0 ? '📋' : '➕'}
-						${count > 0 ? count + ' serial' + (count !== 1 ? 's' : '') + ' — click to manage' : 'Click to scan serials'}
-					</div>
-				`);
-
-                $cell.off("click.dispatch").on("click.dispatch", (e) => {
-                    e.stopPropagation();
-                    _open_serial_dialog(frm, row.name, row.item_code);
-                });
-            } else {
-                // Submitted — just show the count
-                $cell.html(`
-					<span style="font-size:12px;color:#6b7280;">
-						${count > 0 ? '📋 ' + count + ' serials logged' : '—'}
-					</span>
-				`);
-                if (count > 0) {
-                    $cell.css("cursor", "pointer").off("click.dispatch").on("click.dispatch", (e) => {
-                        e.stopPropagation();
-                        _open_serial_dialog(frm, row.name, row.item_code);
-                    });
-                }
-            }
-        });
-    }, 250);
-}
-
-// ---------------------------------------------------------------
-// The Serial Management Dialog
-// ---------------------------------------------------------------
-
-function _open_serial_dialog(frm, row_name, item_code) {
-    const product_row = (frm.doc.products || []).find((r) => r.name === row_name);
-    if (!product_row) return;
-
-    let serials = _parse_serials(product_row.serial_nos || "");
-    const isReadonly = frm.doc.docstatus !== 0;
-
-    const dialog = new frappe.ui.Dialog({
-        title: `Serial Numbers — ${item_code || "Select Item First"}`,
-        size: "large",
-        fields: [
-            {
-                fieldname: "info_section",
-                fieldtype: "HTML",
-                options: `<div id="sn-dialog-root"></div>`,
-            },
-        ],
-        primary_action_label: isReadonly ? "Close" : "Save & Close",
-        primary_action() {
-            if (!isReadonly) {
-                const updated = _get_dialog_serials();
-                frappe.model.set_value("Dispatch Product", row_name, "serial_nos", updated.join("\n"));
-                frappe.model.set_value("Dispatch Product", row_name, "qty", updated.length);
-                _refresh_totals(frm);
-                frm.dirty();
-                setTimeout(() => _render_serial_cells(frm), 300);
-            }
-            dialog.hide();
-        },
-    });
-
-    dialog.show();
-
-    const $root = dialog.$wrapper.find("#sn-dialog-root");
-    _render_serial_ui($root, serials, item_code, isReadonly);
-
-    function _get_dialog_serials() {
-        const result = [];
-        $root.find(".sn-row[data-sn]").each(function () {
-            result.push($(this).attr("data-sn"));
-        });
-        return result;
-    }
-}
-
-function _render_serial_ui($root, initialSerials, item_code, isReadonly) {
-    let serials = [...initialSerials];
-
-    function render() {
-        const q = ($root.find("#sn-search").val() || "").trim().toUpperCase();
-        const filtered = q ? serials.filter((s) => s.toUpperCase().includes(q)) : serials;
-
-        $root.empty();
-        $root.append(`
-			<div style="padding:12px 0 4px;">
-				${!isReadonly ? `
-				<!-- Scan bar -->
-				<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
-					<input
-						id="sn-scan-input"
-						type="text"
-						placeholder="🔫 Scan or type serial number + Enter"
-						autocomplete="off" autocorrect="off" spellcheck="false"
-						style="flex:1;min-width:200px;padding:8px 14px;border:2px solid #818cf8;border-radius:8px;font-size:14px;font-weight:500;"
-					/>
-					<span style="font-size:13px;color:#6b7280;white-space:nowrap;">
-						Total: <strong>${serials.length}</strong>
-					</span>
-				</div>
-				<div id="sn-last-feedback" style="min-height:20px;margin-bottom:8px;font-size:12px;"></div>
-				` : `
-				<div style="margin-bottom:12px;font-size:13px;color:#6b7280;">
-					Showing <strong>${serials.length}</strong> logged serial numbers (read-only after submission).
-				</div>
-				`}
-
-				<!-- Search bar -->
-				<input
-					id="sn-search"
-					type="text"
-					placeholder="🔍 Search serial number…"
-					value="${q || ''}"
-					style="width:100%;padding:6px 12px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;margin-bottom:10px;"
-				/>
-
-				<!-- Table -->
-				<div style="max-height:400px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;">
-					<table style="width:100%;border-collapse:collapse;font-size:13px;">
-						<thead>
-							<tr style="background:#f9fafb;position:sticky;top:0;z-index:1;">
-								<th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e5e7eb;width:50px;">#</th>
-								<th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e5e7eb;">Serial Number</th>
-								${!isReadonly ? '<th style="padding:8px 12px;text-align:center;border-bottom:1px solid #e5e7eb;width:70px;">Delete</th>' : ''}
-							</tr>
-						</thead>
-						<tbody>
-							${filtered.length === 0
-                ? `<tr><td colspan="3" style="text-align:center;padding:28px;color:#9ca3af;">
-									${serials.length > 0 ? 'No serials match your search' : 'No serials yet — start scanning above'}</td></tr>`
-                : filtered.map((sn) => `
-									<tr class="sn-row" data-sn="${frappe.utils.escape_html(sn)}"
-										style="border-bottom:1px solid #f3f4f6;">
-										<td style="padding:6px 12px;color:#9ca3af;">${serials.indexOf(sn) + 1}</td>
-										<td style="padding:6px 12px;font-family:monospace;font-size:13px;">${frappe.utils.escape_html(sn)}</td>
-										${!isReadonly ? `<td style="padding:6px 12px;text-align:center;">
-											<button class="btn btn-xs btn-danger sn-delete-btn"
-												data-sn="${frappe.utils.escape_html(sn)}"
-												style="border-radius:6px;padding:1px 8px;font-size:11px;">✕</button>
-										</td>` : ''}
-									</tr>
-								`).join("")
-            }
-						</tbody>
-					</table>
-				</div>
-			</div>
-		`);
-
-        // ---- Scan input handlers (only on draft) ----
-        if (!isReadonly) {
-            let scanTimer;
-            const $scanInput = $root.find("#sn-scan-input");
-
-            $scanInput
-                .on("keydown", function (e) {
-                    if (e.key === "Enter") {
-                        e.preventDefault();
-                        _add_serial($(this).val().trim());
-                        $(this).val("").focus();
-                    }
-                })
-                .on("input", function () {
-                    clearTimeout(scanTimer);
-                    const val = $(this).val().trim();
-                    scanTimer = setTimeout(() => {
-                        if (val.length >= 6) {
-                            _add_serial(val);
-                            $(this).val("").focus();
-                        }
-                    }, 150);
-                });
-
-            // Auto-focus the scan input
-            setTimeout(() => $scanInput.focus(), 100);
-        }
-
-        // ---- Search: live filter ----
-        $root.find("#sn-search").on("input", () => render());
-
-        // ---- Delete buttons ----
-        if (!isReadonly) {
-            $root.find(".sn-delete-btn").on("click", function () {
-                const sn = $(this).attr("data-sn");
-                serials = serials.filter((s) => s !== sn);
-                $root.find("#sn-last-feedback").html(
-                    `<span style="color:#ef4444;">🗑 Removed: <b>${sn}</b></span>`
-                );
-                render();
-            });
-        }
-    }
-
-    function _add_serial(sn) {
-        if (!sn) return;
-
-        // Smart Scan Validation
-        const mergedWarning = _detect_merged_serial(sn, serials);
-        if (mergedWarning) {
-            _play_audio_tone("error");
-            frappe.show_alert({ message: `<b>Merged Scan Error:</b><br>${mergedWarning}`, indicator: "red" }, 5);
-            $root.find("#sn-last-feedback").html(
-                `<span style="color:#ef4444;font-size:13px;">❌ <b>Rejected:</b> ${sn} (${mergedWarning})</span>`
-            );
-
-            // Visual error feedback on the input box
-            const $input = $root.find("#sn-scan-input");
-            $input.css({ "background-color": "#fee2e2", "border-color": "#ef4444" });
-            setTimeout(() => $input.css({ "background-color": "", "border-color": "#818cf8" }), 800);
-            return;
-        }
-
-        if (serials.findIndex((s) => s.toUpperCase() === sn.toUpperCase()) !== -1) {
-            _play_audio_tone("error");
-            frappe.show_alert({ message: `Duplicate skipped: <b>${sn}</b>`, indicator: "orange" }, 3);
-            $root.find("#sn-last-feedback").html(
-                `<span style="color:#f59e0b;">⚠ Duplicate: <b>${sn}</b> already in list</span>`
-            );
-            return;
-        }
-
-        serials.push(sn);
-        _play_audio_tone("success");
-        frappe.show_alert({ message: `✓ Added: <b>${sn}</b>`, indicator: "green" }, 2);
-        $root.find("#sn-last-feedback").html(
-            `<span style="color:#22c55e;">✓ Added: <b>${sn}</b></span>`
-        );
-        render();
-    }
-
-    render();
-}
-
-// ---------------------------------------------------------------
-// Processing status banner
-// ---------------------------------------------------------------
-
-function _show_processing_banner(frm) {
-    const status = frm.doc.processing_status || "Pending";
-    const msgs = {
-        "Pending": "⏳ Waiting to be queued for background processing…",
-        "In Queue": "⚙️ Processing serials in background — this page refreshes every 5 seconds automatically.",
-        "Processed": `✅ Done! All ${frm.doc.total_qty} serial numbers have been registered/updated in the system.`,
-        "Failed": '❌ Processing failed — click "Retry Processing" to try again, or check <b>Error Log</b> for details.',
-    };
-    const colors = { "Pending": "yellow", "In Queue": "yellow", "Processed": "green", "Failed": "red" };
-
-    frm.dashboard.add_comment(msgs[status], colors[status] || "yellow", true);
-}

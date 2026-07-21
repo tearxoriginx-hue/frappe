@@ -40,10 +40,7 @@
             "fieldname": "company",
             "fieldtype": "Link",
             "label": "Company",
-            "options": "Company",
-            "read_only": 1,
-            "reqd": 1,
-            "hidden": 1
+            "options": "Company"
         },
         {
             "fieldname": "column_break_1",
@@ -112,9 +109,8 @@
         }
     ],
     "index_web_pages_for_search": 1,
-    "is_submittable": 1,
     "links": [],
-    "modified": "2026-03-03 17:30:00.000000",
+    "modified": "2026-07-17 16:07:53.680392",
     "modified_by": "Administrator",
     "module": "Dispatch Module",
     "name": "Dispatch Entry",
@@ -123,8 +119,6 @@
     "owner": "Administrator",
     "permissions": [
         {
-            "amend": 1,
-            "cancel": 1,
             "create": 1,
             "delete": 1,
             "email": 1,
@@ -136,12 +130,9 @@
             "role": "System Manager",
             "set_user_permissions": 1,
             "share": 1,
-            "submit": 1,
             "write": 1
         },
         {
-            "amend": 1,
-            "cancel": 1,
             "create": 1,
             "delete": 1,
             "email": 1,
@@ -151,7 +142,6 @@
             "report": 1,
             "role": "Dispatch Manager",
             "share": 1,
-            "submit": 1,
             "write": 1
         },
         {
@@ -161,28 +151,9 @@
             "read": 1,
             "report": 1,
             "role": "Dispatch Operator",
-            "submit": 1,
             "write": 1
         }
     ],
     "sort_field": "modified",
-    "sort_order": "DESC",
-    "states": [
-        {
-            "color": "Gray",
-            "title": "Draft"
-        },
-        {
-            "color": "Blue",
-            "title": "Submitted"
-        },
-        {
-            "color": "Green",
-            "title": "Processed"
-        },
-        {
-            "color": "Red",
-            "title": "Failed"
-        }
-    ]
+    "sort_order": "DESC"
 }

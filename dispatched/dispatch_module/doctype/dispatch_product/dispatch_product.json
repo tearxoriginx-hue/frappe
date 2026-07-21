@@ -40,7 +40,7 @@
             "description": "Click to scan serial numbers"
         },
         {
-            "fetch_from": "item_code.warranty_period",
+            "fetch_from": "item_code.warranty_period_days",
             "fieldname": "warranty_period_days",
             "fieldtype": "Int",
             "label": "Warranty (Days)",
