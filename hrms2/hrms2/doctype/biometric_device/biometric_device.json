@@ -5,35 +5,191 @@
  "creation": "2026-07-07 12:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": ["device_name", "device_type", "device_ip", "device_port", "device_password", "branch", "company", "is_active", "last_sync_time", "notes_section", "notes"],
+ "field_order": [
+  "device_name",
+  "device_type",
+  "device_ip",
+  "device_port",
+  "device_password",
+  "branch",
+  "company",
+  "is_active",
+  "last_sync_time",
+  "connection_section",
+  "test_connection_btn",
+  "last_test_result",
+  "view_punch_logs",
+  "setup_instructions_sb",
+  "setup_instructions_html",
+  "notes_section",
+  "notes"
+ ],
  "fields": [
-  {"fieldname": "device_name", "fieldtype": "Data", "in_list_view": 1, "label": "Device Name", "reqd": 1, "unique": 1},
-  {"fieldname": "device_type", "fieldtype": "Select", "in_list_view": 1, "label": "Device Type", "options": "Fingerprint\nFace Recognition\nCard Reader\nHybrid", "reqd": 1},
-  {"fieldname": "device_ip", "fieldtype": "Data", "in_list_view": 1, "label": "Device IP Address"},
-  {"fieldname": "device_port", "fieldtype": "Data", "label": "Device Port"},
-  {"fieldname": "device_password", "fieldtype": "Password", "label": "Device Communication Key"},
-  {"fieldname": "branch", "fieldtype": "Link", "in_list_view": 1, "label": "Branch", "options": "Branch"},
-  {"fieldname": "company", "fieldtype": "Link", "label": "Company", "options": "Company"},
-  {"default": "1", "fieldname": "is_active", "fieldtype": "Check", "label": "Is Active"},
-  {"fieldname": "last_sync_time", "fieldtype": "Datetime", "label": "Last Sync Time", "read_only": 1},
-  {"fieldname": "notes_section", "fieldtype": "Section Break", "label": "Notes"},
-  {"fieldname": "notes", "fieldtype": "Small Text", "label": "Notes"}
+  {
+   "fieldname": "device_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Device Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "device_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Device Type",
+   "options": "Fingerprint\nFace Recognition\nCard Reader\nHybrid",
+   "reqd": 1
+  },
+  {
+   "fieldname": "device_ip",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Device IP Address"
+  },
+  {
+   "fieldname": "device_port",
+   "fieldtype": "Data",
+   "label": "Device Port"
+  },
+  {
+   "fieldname": "device_password",
+   "fieldtype": "Password",
+   "label": "Device Communication Key",
+   "description": "Optional password/communication key for connecting to this device"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "last_sync_time",
+   "fieldtype": "Datetime",
+   "label": "Last Sync Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "connection_section",
+   "fieldtype": "Section Break",
+   "label": "Connection"
+  },
+  {
+   "fieldname": "test_connection_btn",
+   "fieldtype": "Button",
+   "label": "Test Connection"
+  },
+  {
+   "fieldname": "last_test_result",
+   "fieldtype": "Small Text",
+   "label": "Last Test Result",
+   "read_only": 1
+  },
+  {
+   "fieldname": "view_punch_logs",
+   "fieldtype": "HTML",
+   "options": "<a href='/app/biometric-punch-log' class='btn btn-default btn-xs'>View All Punch Logs →</a>"
+  },
+  {
+   "fieldname": "setup_instructions_sb",
+   "fieldtype": "Section Break",
+   "label": "Setup Instructions",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "setup_instructions_html",
+   "fieldtype": "HTML Editor",
+   "label": "",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
  ],
  "grid_page_length": 50,
- "links": [{"link_doctype": "Employee Biometric", "link_fieldname": "biometric_device"}],
- "modified": "2026-07-07 12:00:00.000000",
+ "links": [
+  {
+   "link_doctype": "Employee Biometric",
+   "link_fieldname": "biometric_device"
+  }
+ ],
+ "modified": "2026-07-12 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "HRMS2",
  "name": "Biometric Device",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
-  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
-  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "HR Manager", "share": 1, "write": 1},
-  {"email": 1, "print": 1, "read": 1, "report": 1, "role": "HR User"}
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User"
+  }
  ],
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "title_field": "device_name"
+ "states": [],
+ "title_field": "device_name",
+ "allow_import": 1
 }

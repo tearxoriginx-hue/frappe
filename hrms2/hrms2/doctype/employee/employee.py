@@ -19,19 +19,74 @@ class Employee(Document):
     def after_insert(self):
         self.create_user_permission()
 
+    def on_update(self):
+        self.update_branch_user_permission()
+
     def create_user_permission(self):
-        if self.user_id and not frappe.db.get_value("User Permission", {
-            "user": self.user_id,
-            "allow": "Employee",
-            "for_value": self.name
-        }):
-            perm = frappe.get_doc({
-                "doctype": "User Permission",
+        if self.user_id:
+            if not frappe.db.get_value("User Permission", {
                 "user": self.user_id,
                 "allow": "Employee",
-                "for_value": self.name,
+                "for_value": self.name
+            }):
+                perm = frappe.get_doc({
+                    "doctype": "User Permission",
+                    "user": self.user_id,
+                    "allow": "Employee",
+                    "for_value": self.name,
+                })
+                perm.insert(ignore_permissions=True)
+
+            if self.branch and not frappe.db.get_value("User Permission", {
+                "user": self.user_id,
+                "allow": "Branch",
+                "for_value": self.branch
+            }):
+                perm = frappe.get_doc({
+                    "doctype": "User Permission",
+                    "user": self.user_id,
+                    "allow": "Branch",
+                    "for_value": self.branch,
+                    "apply_to_all_doctypes": 1,
+                })
+                perm.insert(ignore_permissions=True)
+
+    def update_branch_user_permission(self):
+        """Update Branch User Permission if branch changed."""
+        if not self.user_id:
+            return
+
+        # Get existing Branch permission
+        existing = frappe.db.get_value("User Permission", {
+            "user": self.user_id,
+            "allow": "Branch"
+        }, "for_value")
+
+        if self.branch:
+            if existing and existing != self.branch:
+                # Branch changed - update existing
+                frappe.db.set_value("User Permission", {
+                    "user": self.user_id,
+                    "allow": "Branch",
+                    "for_value": existing
+                }, "for_value", self.branch)
+            elif not existing:
+                # No permission exists - create new
+                perm = frappe.get_doc({
+                    "doctype": "User Permission",
+                    "user": self.user_id,
+                    "allow": "Branch",
+                    "for_value": self.branch,
+                    "apply_to_all_doctypes": 1,
+                })
+                perm.insert(ignore_permissions=True)
+        elif existing:
+            # Branch removed - delete permission
+            frappe.db.delete("User Permission", {
+                "user": self.user_id,
+                "allow": "Branch",
+                "for_value": existing
             })
-            perm.insert(ignore_permissions=True)
 
 
 def get_employee_by_user(user):

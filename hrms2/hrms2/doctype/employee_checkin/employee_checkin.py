@@ -13,11 +13,21 @@ class EmployeeCheckin(Document):
 
 
 @frappe.whitelist()
-def add_log_based_on_employee_field(employee_field_value, log_type, device_id="PWA", timestamp=None):
-    """Create an Employee Checkin log using employee field value."""
-    # Find employee by user_id
+def add_log_based_on_employee_field(employee_field_value, log_type, device_id="PWA", timestamp=None, employee_fieldname="user_id", latitude=None, longitude=None):
+    """Create an Employee Checkin log using employee field value.
+
+    Args:
+        employee_field_value: Value to look up employee (user_id, name, or employee_name)
+        log_type: "IN" or "OUT"
+        device_id: Device identifier
+        timestamp: Optional timestamp override
+        employee_fieldname: Field to use for lookup (default "user_id")
+        latitude: Optional GPS latitude
+        longitude: Optional GPS longitude
+    """
+    # Find employee by specified field
     emp = frappe.db.get_value("Employee",
-        {"user_id": employee_field_value, "status": "Active"},
+        {employee_fieldname: employee_field_value, "status": "Active"},
         ["name", "employee_name"], as_dict=True)
 
     if not emp:
@@ -35,6 +45,13 @@ def add_log_based_on_employee_field(employee_field_value, log_type, device_id="P
         "time": timestamp or frappe.utils.now_datetime(),
         "device_id": device_id,
     })
+
+    # Set location data if provided
+    if latitude:
+        checkin.latitude = latitude
+    if longitude:
+        checkin.longitude = longitude
+
     checkin.insert(ignore_permissions=True)
     frappe.db.commit()
 

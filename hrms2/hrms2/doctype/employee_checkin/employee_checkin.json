@@ -1,39 +1,144 @@
 {
- "actions": [],
- "allow_import": 1,
- "autoname": "format:EC-{YYYY}-{MM}-{#####}",
- "creation": "2026-07-07 12:00:00.000000",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": ["employee", "employee_name", "department", "column_break_3", "log_type", "time", "device_id", "section_break_7", "skip_auto_attendance", "attendance"],
- "fields": [
-  {"fieldname": "employee", "fieldtype": "Link", "in_list_view": 1, "label": "Employee", "options": "Employee", "reqd": 1},
-  {"fetch_from": "employee.employee_name", "fieldname": "employee_name", "fieldtype": "Data", "label": "Employee Name", "read_only": 1},
-  {"fetch_from": "employee.department", "fieldname": "department", "fieldtype": "Link", "label": "Department", "options": "Department", "read_only": 1},
-  {"fieldname": "column_break_3", "fieldtype": "Column Break"},
-  {"fieldname": "log_type", "fieldtype": "Select", "in_list_view": 1, "label": "Log Type", "options": "IN\nOUT", "reqd": 1},
-  {"fieldname": "time", "fieldtype": "Datetime", "in_list_view": 1, "label": "Time", "reqd": 1},
-  {"fieldname": "device_id", "fieldtype": "Data", "label": "Device ID"},
-  {"fieldname": "section_break_7", "fieldtype": "Section Break"},
-  {"default": "0", "fieldname": "skip_auto_attendance", "fieldtype": "Check", "label": "Skip Auto Attendance"},
-  {"fieldname": "attendance", "fieldtype": "Link", "label": "Attendance", "options": "Attendance", "read_only": 1}
- ],
- "grid_page_length": 50,
- "index_web_pages_for_search": 0,
- "modified": "2026-07-07 12:00:00.000000",
- "modified_by": "Administrator",
- "module": "HRMS2",
- "name": "Employee Checkin",
- "naming_rule": "Expression",
- "owner": "Administrator",
- "permissions": [
-  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
-  {"create": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "HR Manager", "share": 1, "write": 1},
-  {"create": 1, "email": 1, "read": 1, "role": "Employee"}
- ],
- "row_format": "Dynamic",
- "search_fields": "employee,employee_name,log_type",
- "sort_field": "modified",
- "sort_order": "DESC",
- "track_changes": 1
+  "actions": [],
+  "allow_import": 1,
+  "autoname": "format:EC-{YYYY}-{MM}-{#####}",
+  "creation": "2026-07-07 12:00:00.000000",
+  "doctype": "DocType",
+  "engine": "InnoDB",
+  "field_order": [
+    "employee",
+    "employee_name",
+    "department",
+    "column_break_3",
+    "log_type",
+    "time",
+    "device_id",
+    "latitude",
+    "longitude",
+    "section_break_7",
+    "skip_auto_attendance",
+    "attendance"
+  ],
+  "fields": [
+    {
+      "fieldname": "employee",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "Employee",
+      "options": "Employee",
+      "reqd": 1
+    },
+    {
+      "fetch_from": "employee.employee_name",
+      "fieldname": "employee_name",
+      "fieldtype": "Data",
+      "label": "Employee Name",
+      "read_only": 1
+    },
+    {
+      "fetch_from": "employee.department",
+      "fieldname": "department",
+      "fieldtype": "Link",
+      "label": "Department",
+      "options": "Department",
+      "read_only": 1
+    },
+    {
+      "fieldname": "column_break_3",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "log_type",
+      "fieldtype": "Select",
+      "in_list_view": 1,
+      "label": "Log Type",
+      "options": "IN\nOUT",
+      "reqd": 1
+    },
+    {
+      "fieldname": "time",
+      "fieldtype": "Datetime",
+      "in_list_view": 1,
+      "label": "Time",
+      "reqd": 1
+    },
+    {
+      "fieldname": "device_id",
+      "fieldtype": "Data",
+      "label": "Device ID"
+    },
+    {
+      "fieldname": "latitude",
+      "fieldtype": "Data",
+      "label": "Latitude",
+      "read_only": 1
+    },
+    {
+      "fieldname": "longitude",
+      "fieldtype": "Data",
+      "label": "Longitude",
+      "read_only": 1
+    },
+    {
+      "fieldname": "section_break_7",
+      "fieldtype": "Section Break"
+    },
+    {
+      "default": "0",
+      "fieldname": "skip_auto_attendance",
+      "fieldtype": "Check",
+      "label": "Skip Auto Attendance"
+    },
+    {
+      "fieldname": "attendance",
+      "fieldtype": "Link",
+      "label": "Attendance",
+      "options": "Attendance",
+      "read_only": 1
+    }
+  ],
+  "grid_page_length": 50,
+  "index_web_pages_for_search": 0,
+  "modified": "2026-07-07 12:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "HRMS2",
+  "name": "Employee Checkin",
+  "naming_rule": "Expression",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "HR Manager",
+      "share": 1,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "email": 1,
+      "read": 1,
+      "role": "Employee"
+    }
+  ],
+  "row_format": "Dynamic",
+  "search_fields": "employee,employee_name,log_type",
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "track_changes": 1
 }

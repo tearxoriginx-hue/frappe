@@ -1,0 +1,162 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "field:shift_name",
+ "creation": "2026-07-07 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "shift_name",
+  "company",
+  "column_break_3",
+  "is_active",
+  "default_shift",
+  "timing_section",
+  "start_time",
+  "end_time",
+  "column_break_time",
+  "late_entry_grace_period",
+  "early_exit_grace_period",
+  "attendance_rules_section",
+  "half_day_hours",
+  "allow_overtime",
+  "column_break_rules",
+  "overtime_rate",
+  "consider_lwp_after_minutes",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "shift_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Shift Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  },
+  {
+   "default": "0",
+   "fieldname": "default_shift",
+   "fieldtype": "Check",
+   "label": "Default Shift",
+   "description": "Set as default shift for new employees"
+  },
+  {
+   "fieldname": "timing_section",
+   "fieldtype": "Section Break",
+   "label": "Shift Timings"
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "Start Time",
+   "reqd": 1,
+   "description": "Shift start time (e.g. 09:00)"
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "End Time",
+   "reqd": 1,
+   "description": "Shift end time (e.g. 18:00)"
+  },
+  {
+   "fieldname": "column_break_time",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "15",
+   "fieldname": "late_entry_grace_period",
+   "fieldtype": "Int",
+   "label": "Late Entry Grace Period (Minutes)",
+   "description": "Minutes after start time before marked late"
+  },
+  {
+   "default": "15",
+   "fieldname": "early_exit_grace_period",
+   "fieldtype": "Int",
+   "label": "Early Exit Grace Period (Minutes)",
+   "description": "Minutes before end time before marked early exit"
+  },
+  {
+   "fieldname": "attendance_rules_section",
+   "fieldtype": "Section Break",
+   "label": "Attendance Rules"
+  },
+  {
+   "default": "4",
+   "fieldname": "half_day_hours",
+   "fieldtype": "Float",
+   "label": "Min Hours for Half Day",
+   "description": "If total hours < this, mark Half Day instead of Present"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_overtime",
+   "fieldtype": "Check",
+   "label": "Allow Overtime",
+   "description": "Enable overtime calculation for this shift"
+  },
+  {
+   "fieldname": "column_break_rules",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1.5",
+   "fieldname": "overtime_rate",
+   "fieldtype": "Float",
+   "label": "Overtime Rate Multiplier",
+   "description": "1.5 = time and a half, 2.0 = double time"
+  },
+  {
+   "default": "240",
+   "fieldname": "consider_lwp_after_minutes",
+   "fieldtype": "Int",
+   "label": "Consider Absent/LWP After (Minutes Late)",
+   "description": "If employee is late by more than this, mark Absent/LWP"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-07 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HRMS2",
+ "name": "Shift Type",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1,"delete": 1,"email": 1,"export": 1,"print": 1,"read": 1,"report": 1,"role": "System Manager","share": 1,"write": 1},
+  {"create": 1,"delete": 1,"email": 1,"export": 1,"print": 1,"read": 1,"report": 1,"role": "HR Manager","share": 1,"write": 1},
+  {"email": 1,"print": 1,"read": 1,"role": "HR User"}
+ ],
+ "search_fields": "shift_name",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "shift_name",
+ "track_changes": 1
+}

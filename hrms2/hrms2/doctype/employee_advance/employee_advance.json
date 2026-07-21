@@ -1,0 +1,266 @@
+{
+ "actions": [],
+ "autoname": "format:ADV-{YYYY}-{MM}-{#####}",
+ "creation": "2026-07-07 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "department",
+  "column_break_3",
+  "posting_date",
+  "company",
+  "purpose",
+  "section_break_amount",
+  "amount",
+  "currency",
+  "column_break_amount",
+  "paid_amount",
+  "repaid_amount",
+  "outstanding_amount",
+  "section_break_repayment",
+  "repayment_method",
+  "installment_periods",
+  "installment_amount",
+  "column_break_repayment",
+  "advance_account",
+  "mode_of_payment",
+  "section_break_approval",
+  "status",
+  "approved_by",
+  "approval_date",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "purpose",
+   "fieldtype": "Small Text",
+   "label": "Purpose",
+   "description": "Reason for advance"
+  },
+  {
+   "fieldname": "section_break_amount",
+   "fieldtype": "Section Break",
+   "label": "Amount Details"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Advance Amount",
+   "options": "Company:company:default_currency",
+   "reqd": 1
+  },
+  {
+   "default": "INR",
+   "fieldname": "currency",
+   "fieldtype": "Select",
+   "label": "Currency",
+   "options": "INR\nUSD\nEUR"
+  },
+  {
+   "fieldname": "column_break_amount",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "paid_amount",
+   "fieldtype": "Currency",
+   "label": "Paid Amount",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "repaid_amount",
+   "fieldtype": "Currency",
+   "label": "Repaid Amount",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "outstanding_amount",
+   "fieldtype": "Currency",
+   "label": "Outstanding Amount",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_repayment",
+   "fieldtype": "Section Break",
+   "label": "Repayment Plan"
+  },
+  {
+   "fieldname": "repayment_method",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Repayment Method",
+   "options": "Salary Deduction\nInstallment Plan\nLump Sum",
+   "default": "Salary Deduction",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.repayment_method=='Installment Plan'",
+   "fieldname": "installment_periods",
+   "fieldtype": "Int",
+   "label": "Number of Installments (Months)",
+   "description": "Number of monthly installments to repay"
+  },
+  {
+   "depends_on": "eval:doc.repayment_method=='Installment Plan'",
+   "fieldname": "installment_amount",
+   "fieldtype": "Currency",
+   "label": "Installment Amount (per month)",
+   "options": "Company:company:default_currency",
+   "read_only": 1,
+   "description": "Auto-calculated: Amount / Periods"
+  },
+  {
+   "fieldname": "column_break_repayment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "advance_account",
+   "fieldtype": "Data",
+   "label": "Advance Account"
+  },
+  {
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Select",
+   "label": "Mode of Payment",
+   "options": "Cash\nBank Transfer\nCheque"
+  },
+  {
+   "fieldname": "section_break_approval",
+   "fieldtype": "Section Break",
+   "label": "Approval"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nPending Approval\nApproved\nRejected\nPaid\nRepaid\nCancelled"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approval_date",
+   "fieldtype": "Date",
+   "label": "Approval Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Employee Advance",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-07 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HRMS2",
+ "name": "Employee Advance",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Employee",
+   "write": 1,
+   "submit": 1,
+   "delete": 0
+  }
+ ],
+ "search_fields": "employee,employee_name,status",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "employee_name",
+ "track_changes": 1,
+ "allow_import": 1
+}

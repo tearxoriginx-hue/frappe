@@ -1,0 +1,76 @@
+{
+ "actions": [],
+ "creation": "2026-07-07 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "salary_component",
+  "abbr",
+  "amount",
+  "formula",
+  "type",
+  "depends_on_lwp"
+ ],
+ "fields": [
+  {
+   "fieldname": "salary_component",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Salary Component",
+   "options": "Salary Component",
+   "reqd": 1,
+   "columns": 2
+  },
+  {
+   "fetch_from": "salary_component.abbr",
+   "fieldname": "abbr",
+   "fieldtype": "Data",
+   "label": "Abbreviation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "options": "Company:company:default_currency",
+   "columns": 2
+  },
+  {
+   "fieldname": "formula",
+   "fieldtype": "Small Text",
+   "label": "Formula",
+   "description": "Python expression for calculation. E.g.: base * 0.5 for 50% of Base. Leave empty to use fixed Amount.",
+   "columns": 2
+  },
+  {
+   "fetch_from": "salary_component.type",
+   "fieldname": "type",
+   "fieldtype": "Data",
+   "label": "Type",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "depends_on_lwp",
+   "fieldtype": "Check",
+   "label": "Depends on Leave Without Pay",
+   "description": "If checked, this component will be reduced pro-rata for LWP days"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-07 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HRMS2",
+ "name": "Salary Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

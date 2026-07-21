@@ -1,25 +1,147 @@
 {
  "actions": [],
+ "allow_import": 1,
  "autoname": "format:EC-{YYYY}-{MM}-{#####}",
  "creation": "2026-07-07 12:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": ["employee", "employee_name", "department", "column_break_3", "posting_date", "expense_approver", "section_break_expenses", "expenses", "section_break_totals", "total_claimed_amount", "total_sanctioned_amount", "column_break_status", "status"],
- "fields": [
-  {"fieldname": "employee", "fieldtype": "Link", "in_list_view": 1, "label": "Employee", "options": "Employee", "reqd": 1},
-  {"fetch_from": "employee.employee_name", "fieldname": "employee_name", "fieldtype": "Data", "label": "Employee Name", "read_only": 1},
-  {"fetch_from": "employee.department", "fieldname": "department", "fieldtype": "Link", "label": "Department", "options": "Department", "read_only": 1},
-  {"fieldname": "column_break_3", "fieldtype": "Column Break"},
-  {"fieldname": "posting_date", "fieldtype": "Date", "label": "Posting Date", "reqd": 1},
-  {"fieldname": "expense_approver", "fieldtype": "Link", "label": "Expense Approver", "options": "User"},
-  {"fieldname": "section_break_expenses", "fieldtype": "Section Break", "label": "Expenses"},
-  {"fieldname": "expenses", "fieldtype": "Table", "label": "Expenses", "options": "Expense Claim Detail", "reqd": 1},
-  {"fieldname": "section_break_totals", "fieldtype": "Section Break", "label": "Totals"},
-  {"fieldname": "total_claimed_amount", "fieldtype": "Currency", "label": "Total Claimed Amount", "options": "Company:company:default_currency", "read_only": 1},
-  {"fieldname": "total_sanctioned_amount", "fieldtype": "Currency", "label": "Total Sanctioned Amount", "options": "Company:company:default_currency", "read_only": 1},
-  {"fieldname": "column_break_status", "fieldtype": "Column Break"},
-  {"default": "Draft", "fieldname": "status", "fieldtype": "Select", "in_list_view": 1, "label": "Status", "options": "Draft\nSubmitted\nApproved\nRejected\nCancelled"}
+ "field_order": [
+  "employee",
+  "employee_name",
+  "department",
+  "column_break_3",
+  "posting_date",
+  "expense_approver",
+  "status",
+  "section_break_expenses",
+  "expenses",
+  "section_break_totals",
+  "total_claimed_amount",
+  "total_sanctioned_amount",
+  "column_break_approval",
+  "approval_date",
+  "approved_by",
+  "rejection_reason",
+  "amended_from"
  ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expense_approver",
+   "fieldtype": "Link",
+   "label": "Expense Approver",
+   "options": "User"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nSubmitted\nApproved\nRejected\nCancelled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_expenses",
+   "fieldtype": "Section Break",
+   "label": "Expenses"
+  },
+  {
+   "fieldname": "expenses",
+   "fieldtype": "Table",
+   "label": "Expenses",
+   "options": "Expense Claim Detail",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_totals",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_claimed_amount",
+   "fieldtype": "Currency",
+   "label": "Total Claimed Amount",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_sanctioned_amount",
+   "fieldtype": "Currency",
+   "label": "Total Sanctioned Amount",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_approval",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "approval_date",
+   "fieldtype": "Date",
+   "label": "Approval Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Data",
+   "label": "Approved By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rejection_reason",
+   "fieldtype": "Small Text",
+   "label": "Rejection Reason",
+   "read_only": 1,
+   "depends_on": "eval:doc.status=='Rejected'"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Expense Claim",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
  "modified": "2026-07-07 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "HRMS2",
@@ -27,12 +149,50 @@
  "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
-  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
-  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "HR Manager", "share": 1, "write": 1},
-  {"create": 1, "email": 1, "print": 1, "read": 1, "role": "Employee"}
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Employee",
+   "write": 1,
+   "submit": 1,
+   "delete": 0
+  }
  ],
  "search_fields": "employee,employee_name,status",
  "sort_field": "modified",
  "sort_order": "DESC",
+ "title_field": "employee_name",
  "track_changes": 1
 }

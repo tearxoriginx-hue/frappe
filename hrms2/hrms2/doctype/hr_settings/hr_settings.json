@@ -1,28 +1,302 @@
 {
  "actions": [],
- "creation": "2026-07-07 12:00:00.000000",
+ "creation": "2026-07-07 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": ["attendance_settings", "allow_employee_checkin_from_mobile_app", "allow_geolocation_tracking", "section_leave_settings", "leave_approval_notification", "default_leave_types"],
+ "field_order": [
+  "company_settings",
+  "default_company",
+  "default_holiday_list",
+  "column_break_company",
+  "payroll_period",
+  "default_payroll_payable_account",
+  "attendance_section",
+  "allow_employee_checkin_from_mobile_app",
+  "allow_geolocation_tracking",
+  "auto_attendance",
+  "column_break_attendance",
+  "half_day_threshold_hours",
+  "overtime_threshold_hours",
+  "overtime_rate_multiplier",
+  "leave_section",
+  "leave_approval_notification",
+  "default_leave_types",
+  "column_break_leave",
+  "enable_carry_forward",
+  "carry_forward_expiry_months",
+  "payroll_section",
+  "payroll_frequency",
+  "salary_date",
+  "column_break_payroll",
+  "daily_working_hours",
+  "max_overtime_hours_per_month",
+  "advance_section",
+  "max_advance_percentage_of_ctc",
+  "max_advance_installments",
+  "column_break_advance",
+  "require_advance_approval",
+  "notify_on_advance_request",
+  "shift_management_section",
+  "enable_shift_management",
+  "default_shift_type",
+  "column_break_shift",
+  "auto_assign_shift_to_new_employees",
+  "allow_shift_swap_requests"
+ ],
  "fields": [
-  {"fieldname": "attendance_settings", "fieldtype": "Section Break", "label": "Attendance Settings"},
-  {"default": "1", "fieldname": "allow_employee_checkin_from_mobile_app", "fieldtype": "Check", "label": "Allow Employee Check-in from Mobile App"},
-  {"default": "1", "fieldname": "allow_geolocation_tracking", "fieldtype": "Check", "label": "Allow Geolocation Tracking"},
-  {"fieldname": "section_leave_settings", "fieldtype": "Section Break", "label": "Leave Settings"},
-  {"default": "1", "fieldname": "leave_approval_notification", "fieldtype": "Check", "label": "Send Leave Approval Notification"},
-  {"fieldname": "default_leave_types", "fieldtype": "Small Text", "label": "Default Leave Types", "description": "Comma-separated leave type names"}
+  {
+   "fieldname": "company_settings",
+   "fieldtype": "Section Break",
+   "label": "Company Settings"
+  },
+  {
+   "fieldname": "default_company",
+   "fieldtype": "Link",
+   "label": "Default Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "default_holiday_list",
+   "fieldtype": "Link",
+   "label": "Default Holiday List",
+   "options": "Holiday List",
+   "description": "Default holiday list for new employees"
+  },
+  {
+   "fieldname": "column_break_company",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payroll_period",
+   "fieldtype": "Select",
+   "label": "Payroll Period",
+   "options": "Monthly\nFortnightly\nWeekly",
+   "default": "Monthly"
+  },
+  {
+   "fieldname": "default_payroll_payable_account",
+   "fieldtype": "Data",
+   "label": "Default Payroll Payable Account"
+  },
+  {
+   "fieldname": "attendance_section",
+   "fieldtype": "Section Break",
+   "label": "Attendance Settings"
+  },
+  {
+   "default": "1",
+   "fieldname": "allow_employee_checkin_from_mobile_app",
+   "fieldtype": "Check",
+   "label": "Allow Employee Check-in from Mobile App"
+  },
+  {
+   "default": "1",
+   "fieldname": "allow_geolocation_tracking",
+   "fieldtype": "Check",
+   "label": "Allow Geolocation Tracking"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_attendance",
+   "fieldtype": "Check",
+   "label": "Auto Create Attendance from Check-ins",
+   "description": "Auto-mark Present/Absent from check-in logs"
+  },
+  {
+   "fieldname": "column_break_attendance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "4",
+   "fieldname": "half_day_threshold_hours",
+   "fieldtype": "Float",
+   "label": "Half Day Threshold (Hours)",
+   "description": "If employee works less than this, mark Half Day"
+  },
+  {
+   "default": "8",
+   "fieldname": "overtime_threshold_hours",
+   "fieldtype": "Float",
+   "label": "Overtime Threshold (Hours per Day)"
+  },
+  {
+   "default": "1.5",
+   "fieldname": "overtime_rate_multiplier",
+   "fieldtype": "Float",
+   "label": "Overtime Rate Multiplier",
+   "description": "1.5 = time and a half, 2.0 = double time"
+  },
+  {
+   "fieldname": "leave_section",
+   "fieldtype": "Section Break",
+   "label": "Leave Settings"
+  },
+  {
+   "default": "1",
+   "fieldname": "leave_approval_notification",
+   "fieldtype": "Check",
+   "label": "Send Leave Approval Notification"
+  },
+  {
+   "fieldname": "default_leave_types",
+   "fieldtype": "Small Text",
+   "label": "Default Leave Types",
+   "description": "Comma-separated leave type names"
+  },
+  {
+   "fieldname": "column_break_leave",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_carry_forward",
+   "fieldtype": "Check",
+   "label": "Enable Leave Carry Forward"
+  },
+  {
+   "default": "12",
+   "fieldname": "carry_forward_expiry_months",
+   "fieldtype": "Int",
+   "label": "Carry Forward Expiry (Months)"
+  },
+  {
+   "fieldname": "payroll_section",
+   "fieldtype": "Section Break",
+   "label": "Payroll Settings"
+  },
+  {
+   "fieldname": "payroll_frequency",
+   "fieldtype": "Select",
+   "label": "Payroll Frequency",
+   "options": "Monthly\nFortnightly\nWeekly",
+   "default": "Monthly"
+  },
+  {
+   "default": "1",
+   "fieldname": "salary_date",
+   "fieldtype": "Int",
+   "label": "Salary Date (Day of Month)",
+   "description": "e.g. 1 for 1st, 15 for 15th"
+  },
+  {
+   "fieldname": "column_break_payroll",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "8",
+   "fieldname": "daily_working_hours",
+   "fieldtype": "Float",
+   "label": "Daily Working Hours"
+  },
+  {
+   "default": "60",
+   "fieldname": "max_overtime_hours_per_month",
+   "fieldtype": "Int",
+   "label": "Max Overtime Hours per Month"
+  },
+  {
+   "fieldname": "advance_section",
+   "fieldtype": "Section Break",
+   "label": "Employee Advance Settings"
+  },
+  {
+   "default": "50",
+   "fieldname": "max_advance_percentage_of_ctc",
+   "fieldtype": "Float",
+   "label": "Max Advance (% of CTC)"
+  },
+  {
+   "default": "12",
+   "fieldname": "max_advance_installments",
+   "fieldtype": "Int",
+   "label": "Max Advance Installments"
+  },
+  {
+   "fieldname": "column_break_advance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "require_advance_approval",
+   "fieldtype": "Check",
+   "label": "Require Manager Approval for Advances"
+  },
+  {
+   "default": "1",
+   "fieldname": "notify_on_advance_request",
+   "fieldtype": "Check",
+   "label": "Notify Manager on Advance Request"
+  },
+  {
+   "fieldname": "shift_management_section",
+   "fieldtype": "Section Break",
+   "label": "Shift Management"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_shift_management",
+   "fieldtype": "Check",
+   "label": "Enable Shift Management",
+   "description": "Use shift-based attendance and payroll calculation"
+  },
+  {
+   "fieldname": "default_shift_type",
+   "fieldtype": "Link",
+   "label": "Default Shift Type",
+   "options": "Shift Type"
+  },
+  {
+   "fieldname": "column_break_shift",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_assign_shift_to_new_employees",
+   "fieldtype": "Check",
+   "label": "Auto-Assign Default Shift to New Employees"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_shift_swap_requests",
+   "fieldtype": "Check",
+   "label": "Allow Shift Swap Requests"
+  }
  ],
  "issingle": 1,
- "modified": "2026-07-07 12:00:00.000000",
+ "modified": "2026-07-07 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "HRMS2",
  "name": "HR Settings",
  "owner": "Administrator",
  "permissions": [
-  {"create": 1, "delete": 1, "email": 1, "print": 1, "read": 1, "role": "System Manager", "share": 1, "write": 1},
-  {"create": 1, "delete": 1, "email": 1, "print": 1, "read": 1, "role": "HR Manager", "share": 1, "write": 1},
-  {"email": 1, "print": 1, "read": 1, "role": "HR User"}
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "HR User"
+  }
  ],
  "sort_field": "modified",
- "sort_order": "DESC"
+ "sort_order": "DESC",
+ "states": []
 }

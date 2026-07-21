@@ -5,40 +5,333 @@
  "autoname": "naming_series:",
  "creation": "2026-07-07 12:00:00.000000",
  "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": ["naming_series", "first_name", "last_name", "employee_name", "column_break_1", "company", "department", "designation", "status", "employment_type", "section_break_personal", "date_of_birth", "date_of_joining", "cell_number", "personal_email", "column_break_personal", "user_id", "prefered_email", "company_email", "section_break_financial", "pan_number", "bank_name", "bank_ac_no", "uan_no", "ifsc_code", "column_break_financial", "ctc", "salary_mode", "attendance_settings_section", "attendance_type", "employee_biometrics"],
+ "engine": "InnoDB",  "field_order": [
+  "personal_section",
+  "naming_series",
+  "first_name",
+  "last_name",
+  "employee_name",
+  "column_break_personal",
+  "gender",
+  "date_of_birth",
+  "cell_number",
+  "personal_email",
+  "user_account_section",
+  "user_id",
+  "company_email",
+  "prefered_email",
+  "column_break_user",
+  "image",
+  "company_section",
+  "company",
+  "department",
+  "designation",
+  "branch",
+  "column_break_company",
+  "reports_to",
+  "status",
+  "employment_type",
+  "date_of_joining",
+  "holiday_list",
+  "attendance_section",
+  "attendance_type",
+  "shift_type",
+  "column_break_attendance",
+  "employee_biometrics",
+  "salary_section",
+  "monthly_gross",
+  "applicable_pf",
+  "pf_ee_contribution",
+  "pf_er_contribution",
+  "monthly_in_hand",
+  "annual_ctc",
+  "salary_mode",
+  "expense_approver",
+  "column_break_salary",
+  "pan_number",
+  "bank_name",
+  "bank_ac_no",
+  "ifsc_code",
+  "uan_no"
+ ],
  "fields": [
-  {"fieldname": "naming_series", "fieldtype": "Select", "label": "Naming Series", "options": "EMP-\nHR-EMP-\n", "reqd": 1},
-  {"fieldname": "first_name", "fieldtype": "Data", "in_list_view": 1, "label": "First Name", "reqd": 1},
-  {"fieldname": "last_name", "fieldtype": "Data", "label": "Last Name"},
-  {"fieldname": "employee_name", "fieldtype": "Data", "label": "Employee Name", "read_only": 1},
-  {"fieldname": "column_break_1", "fieldtype": "Column Break"},
-  {"fieldname": "company", "fieldtype": "Link", "label": "Company", "options": "Company"},
-  {"fieldname": "department", "fieldtype": "Link", "label": "Department", "options": "Department"},
-  {"fieldname": "designation", "fieldtype": "Link", "label": "Designation", "options": "Designation"},
-  {"fieldname": "status", "fieldtype": "Select", "label": "Status", "options": "Active\nInactive\nLeft\nSuspended", "default": "Active"},
-  {"fieldname": "employment_type", "fieldtype": "Select", "label": "Employment Type", "options": "Full-Time\nPart-Time\nContract\nIntern", "default": "Full-Time"},
-  {"fieldname": "section_break_personal", "fieldtype": "Section Break", "label": "Personal Details"},
-  {"fieldname": "date_of_birth", "fieldtype": "Date", "label": "Date of Birth"},
-  {"fieldname": "date_of_joining", "fieldtype": "Date", "label": "Date of Joining"},
-  {"fieldname": "cell_number", "fieldtype": "Data", "label": "Cell Number"},
-  {"fieldname": "personal_email", "fieldtype": "Data", "label": "Personal Email", "options": "Email"},
-  {"fieldname": "column_break_personal", "fieldtype": "Column Break"},
-  {"fieldname": "user_id", "fieldtype": "Link", "label": "User ID", "options": "User"},
-  {"fieldname": "prefered_email", "fieldtype": "Select", "label": "Preferred Email", "options": "Personal Email\nCompany Email\nUser Email"},
-  {"fieldname": "company_email", "fieldtype": "Data", "label": "Company Email", "options": "Email"},
-  {"fieldname": "section_break_financial", "fieldtype": "Section Break", "label": "Financial Details"},
-  {"fieldname": "pan_number", "fieldtype": "Data", "label": "PAN Number"},
-  {"fieldname": "bank_name", "fieldtype": "Data", "label": "Bank Name"},
-  {"fieldname": "bank_ac_no", "fieldtype": "Data", "label": "Bank Account No"},
-  {"fieldname": "uan_no", "fieldtype": "Data", "label": "UAN (PF) Number"},
-  {"fieldname": "ifsc_code", "fieldtype": "Data", "label": "IFSC Code"},
-  {"fieldname": "column_break_financial", "fieldtype": "Column Break"},
-  {"fieldname": "ctc", "fieldtype": "Currency", "label": "CTC (Annual)", "options": "Company:company:default_currency"},
-  {"fieldname": "salary_mode", "fieldtype": "Select", "label": "Salary Mode", "options": "Bank Transfer\nCheque\nCash"},
-  {"fieldname": "attendance_settings_section", "fieldtype": "Section Break", "label": "Attendance Settings"},
-  {"fieldname": "attendance_type", "fieldtype": "Select", "label": "Attendance Type", "options": "Biometric\nGeo-Location\nBoth", "default": "Biometric"},
-  {"fieldname": "employee_biometrics", "fieldtype": "Table", "label": "Biometric Devices", "options": "Employee Biometric"}
+  {
+   "fieldname": "personal_section",
+   "fieldtype": "Section Break",
+   "label": "Personal Details"
+  },
+  {
+   "default": "EMP-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Employee ID Prefix",
+   "options": "EMP-\nKST-EMP-\n",
+   "reqd": 1
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "First Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "label": "Last Name"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_personal",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Select",
+   "label": "Gender",
+   "options": "Male\nFemale\nOther"
+  },
+  {
+   "fieldname": "date_of_birth",
+   "fieldtype": "Date",
+   "label": "Date of Birth"
+  },
+  {
+   "fieldname": "cell_number",
+   "fieldtype": "Data",
+   "label": "Cell Number"
+  },
+  {
+   "fieldname": "personal_email",
+   "fieldtype": "Data",
+   "label": "Personal Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "user_account_section",
+   "fieldtype": "Section Break",
+   "label": "User Account"
+  },
+  {
+   "fieldname": "user_id",
+   "fieldtype": "Link",
+   "label": "User ID / Login",
+   "options": "User",
+   "description": "Link to existing Frappe user account"
+  },
+  {
+   "fieldname": "company_email",
+   "fieldtype": "Data",
+   "label": "Company Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "prefered_email",
+   "fieldtype": "Select",
+   "label": "Preferred Email",
+   "options": "Personal Email\nCompany Email\nUser Email"
+  },
+  {
+   "fieldname": "column_break_user",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Photo"
+  },
+  {
+   "fieldname": "company_section",
+   "fieldtype": "Section Break",
+   "label": "Organization Details"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "column_break_company",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reports_to",
+   "fieldtype": "Link",
+   "label": "Reports To",
+   "options": "Employee",
+   "description": "Manager/Supervisor this employee reports to"
+  },
+  {
+   "default": "Active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nInactive\nLeft\nSuspended"
+  },
+  {
+   "default": "Full-Time",
+   "fieldname": "employment_type",
+   "fieldtype": "Select",
+   "label": "Employment Type",
+   "options": "Full-Time\nPart-Time\nContract\nIntern"
+  },
+  {
+   "fieldname": "date_of_joining",
+   "fieldtype": "Date",
+   "label": "Date of Joining"
+  },
+  {
+   "fieldname": "holiday_list",
+   "fieldtype": "Link",
+   "label": "Holiday List",
+   "options": "Holiday List"
+  },
+  {
+   "fieldname": "attendance_section",
+   "fieldtype": "Section Break",
+   "label": "Attendance Settings"
+  },
+  {
+   "default": "Biometric",
+   "fieldname": "attendance_type",
+   "fieldtype": "Select",
+   "label": "Attendance Type",
+   "options": "Biometric\nGeo-Location\nManual\nBoth",
+   "description": "How employee attendance is tracked"
+  },
+  {
+   "fieldname": "shift_type",
+   "fieldtype": "Link",
+   "label": "Shift Type",
+   "description": "Select shift schedule for this employee",
+   "options": "Shift Type"
+  },
+  {
+   "fieldname": "column_break_attendance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employee_biometrics",
+   "fieldtype": "Table",
+   "label": "Biometric Device Mappings",
+   "options": "Employee Biometric"
+  },
+  {
+   "fieldname": "salary_section",
+   "fieldtype": "Section Break",
+   "label": "Salary & Financial"
+  },
+  {
+   "fieldname": "monthly_gross",
+   "fieldtype": "Currency",
+   "label": "Monthly Gross",
+   "options": "Company:company:default_currency",
+   "description": "Enter monthly gross salary"
+  },
+  {
+   "default": "1",
+   "fieldname": "applicable_pf",
+   "fieldtype": "Check",
+   "label": "Applicable PF"
+  },
+  {
+   "fieldname": "pf_ee_contribution",
+   "fieldtype": "Currency",
+   "label": "PF Employee Contribution (Monthly)",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pf_er_contribution",
+   "fieldtype": "Currency",
+   "label": "PF Employer Contribution (Monthly)",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "monthly_in_hand",
+   "fieldtype": "Currency",
+   "label": "Monthly In-Hand",
+   "options": "Company:company:default_currency",
+   "read_only": 1,
+   "description": "Monthly Gross minus PF Employee Contribution (other deductions not included)"
+  },
+  {
+   "fieldname": "annual_ctc",
+   "fieldtype": "Currency",
+   "label": "Annual CTC",
+   "options": "Company:company:default_currency",
+   "read_only": 1,
+   "description": "Auto-calculated: (Monthly Gross + Employer PF) x 12"
+  },
+  {
+   "default": "Bank Transfer",
+   "fieldname": "salary_mode",
+   "fieldtype": "Select",
+   "label": "Salary Mode",
+   "options": "Bank Transfer\nCheque\nCash"
+  },
+  {
+   "fieldname": "column_break_salary",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pan_number",
+   "fieldtype": "Data",
+   "label": "PAN Number"
+  },
+  {
+   "fieldname": "bank_name",
+   "fieldtype": "Data",
+   "label": "Bank Name"
+  },
+  {
+   "fieldname": "bank_ac_no",
+   "fieldtype": "Data",
+   "label": "Bank Account No"
+  },
+  {
+   "fieldname": "ifsc_code",
+   "fieldtype": "Data",
+   "label": "IFSC Code"
+  },
+  {
+   "fieldname": "uan_no",
+   "fieldtype": "Data",
+   "label": "UAN (PF) Number"
+  },
+  {
+   "fieldname": "expense_approver",
+   "fieldtype": "Link",
+   "label": "Expense Approver",
+   "options": "User",
+   "description": "Manager who approves expense claims for this employee",
+   "columns": 1
+  }
  ],
  "grid_page_length": 50,
  "image_field": "image",
@@ -48,14 +341,61 @@
  "modified_by": "Administrator",
  "module": "HRMS2",
  "name": "Employee",
- "naming_rule": "By \"Naming Series\" field",
+ "naming_rule": "By Naming Series field",
  "owner": "Administrator",
  "permissions": [
-  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
-  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Administrator", "share": 1, "write": 1},
-  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "HR Manager", "share": 1, "write": 1},
-  {"email": 1, "print": 1, "read": 1, "report": 1, "role": "HR User", "share": 1},
-  {"email": 1, "print": 1, "read": 1, "report": 1, "role": "Employee", "share": 1}
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Employee",
+   "share": 1
+  }
  ],
  "row_format": "Dynamic",
  "search_fields": "employee_name,designation,department",
