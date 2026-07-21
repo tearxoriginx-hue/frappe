@@ -107,5 +107,6 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "company_name"
+ "title_field": "company_name",
+ "allow_import": 1
 }

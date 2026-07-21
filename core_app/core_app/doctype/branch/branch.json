@@ -45,6 +45,7 @@
  "modified_by": "Administrator",
  "module": "Core App",
  "name": "Branch",
+ "autoname": "field:branch_name",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
@@ -121,5 +122,6 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "branch_name"
+ "title_field": "branch_name",
+ "allow_import": 1
 }

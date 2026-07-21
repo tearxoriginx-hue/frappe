@@ -91,9 +91,10 @@
    "share": 1,
    "write": 1
   }
-  ],
+ ],
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "item_group_name"
+ "title_field": "item_group_name",
+ "allow_import": 1
 }

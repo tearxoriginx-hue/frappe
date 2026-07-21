@@ -94,9 +94,10 @@
    "share": 1,
    "write": 1
   }
-  ],
+ ],
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "uom_name"
+ "title_field": "uom_name",
+ "allow_import": 1
 }

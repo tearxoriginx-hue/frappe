@@ -91,10 +91,11 @@
    "share": 1,
    "write": 1
   }
-  ],
-  "row_format": "Dynamic",
+ ],
+ "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
  "sort_field": "creation",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "allow_import": 1
 }

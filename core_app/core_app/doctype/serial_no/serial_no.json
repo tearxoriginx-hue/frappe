@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+    "autoname": "field:serial_no",
  "creation": "2026-06-13 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -163,5 +164,6 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "serial_no"
+ "title_field": "serial_no",
+ "allow_import": 1
 }
